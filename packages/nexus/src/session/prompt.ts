@@ -8,7 +8,7 @@ import { MessageV2 } from "./message-v2"
 import { SessionRevert } from "./revert"
 import { Session } from "./session"
 import { Agent } from "../agent/agent"
-import { MasterAgent, type MasterTask, type WorkerKind, type WorkerRequest, type WorkerResult } from "../agent/master"
+import { MasterAgent, createVerificationReceipt, type MasterTask, type WorkerKind, type WorkerRequest, type WorkerResult } from "../agent/master"
 import { createMasterWorkerRegistry } from "../agent-platform/worker-registry"
 import { saveIncidentReport } from "../agent-platform/incident-response"
 import { proposeIncidentRepair } from "../agent-platform/self-improvement"
@@ -129,6 +129,38 @@ function formatMasterTaskResult(task: MasterTask) {
   }
   if (task.error) lines.push(`Master note: ${truncateMasterStatus(task.error)}`)
   return lines.join("\n")
+}
+
+const RECEIPT_LINE = /^receipt\s*:\s*(.+?)\s*\|\s*exit\s*=\s*(-?\d+)(?:\s*\|\s*output\s*=\s*(.*))?$/i
+
+function parseSpecialistReceipts(output: string): { command: string; exitCode: number; output?: string }[] {
+  const receipts: { command: string; exitCode: number; output?: string }[] = []
+  for (const line of output.split(/\r?\n/)) {
+    const match = RECEIPT_LINE.exec(line.trim())
+    if (!match) continue
+    const command = (match[1] ?? "").trim()
+    const exitCode = Number.parseInt(match[2] ?? "1", 10)
+    const result: { command: string; exitCode: number; output?: string } = {
+      command,
+      exitCode: Number.isFinite(exitCode) ? exitCode : 1,
+    }
+    const text = (match[3] ?? "").trim()
+    if (text) result.output = text.slice(0, 4000)
+    if (command) receipts.push(result)
+  }
+  return receipts.slice(0, 50)
+}
+
+function changedFilesInsideWorkspace(files: string[], workspace: string): string[] {
+  const root = path.resolve(workspace)
+  const kept: string[] = []
+  for (const file of files) {
+    const trimmed = file.trim()
+    if (!trimmed || trimmed.includes("\0")) continue
+    const resolved = path.resolve(root, trimmed)
+    if (resolved === root || resolved.startsWith(`${root}${path.sep}`)) kept.push(path.relative(root, resolved))
+  }
+  return [...new Set(kept)].slice(0, 100)
 }
 
 const STRUCTURED_OUTPUT_DESCRIPTION = `Use this tool to return your final response in the requested structured format.
@@ -309,6 +341,7 @@ const layer = Layer.effect(
       const dispatch = async (request: WorkerRequest): Promise<WorkerResult> => {
         const specialist = MASTER_SPECIALIST_AGENTS[request.step.kind]
         if (!specialist) return registryWorkers.run(request)
+        const criteria = request.step.acceptanceCriteria ?? []
         const prompt = [
           "You are a specialist worker delegated by the NEXUS Master Agent.",
           `Objective: ${request.objective}`,
@@ -317,10 +350,16 @@ const layer = Layer.effect(
           request.queuedInstructions.length
             ? `Queued user instructions:\n${request.queuedInstructions.join("\n")}`
             : "No additional queued instructions.",
+          criteria.length
+            ? `Acceptance criteria (every item must be met before success can be claimed):\n${criteria.map((item) => `- ${item}`).join("\n")}`
+            : "No extra acceptance criteria were provided for this step.",
           "Work only inside the assigned workspace and use the existing tools and permissions.",
           "Do not delegate to another Master Agent. Do not claim success without concrete verification.",
           "Return a concise report containing summary, changed files (if any), verification commands/results, and next steps.",
-        ].join("\\n\\n")
+          "End the report with one RECEIPT line per verification command you actually ran, exactly like:",
+          "RECEIPT: <command> | exit=<exit code> | output=<short tail of the output>",
+          "Report every command you ran, including failures. Never invent a passing result for a command you did not run.",
+        ].join("\n\n")
         const result = await bridge.promise(
           taskTool.execute(
             {
@@ -355,20 +394,49 @@ const layer = Layer.effect(
             next: ["Resume the checkpoint after the specialist returns a concrete verification report."],
           }
         }
-        const changedFiles = output
-          .split(/\r?\n/)
-          .find((line) => /^changed files?:/i.test(line))
-          ?.replace(/^changed files?:\s*/i, "")
-          .split(/[,\s]+/)
-          .map((item) => item.trim())
-          .filter(Boolean)
+        const changedFiles = changedFilesInsideWorkspace(
+          output
+            .split(/\r?\n/)
+            .find((line) => /^changed files?:/i.test(line))
+            ?.replace(/^changed files?:\s*/i, "")
+            .split(/[,\s]+/)
+            .map((item) => item.trim())
+            .filter(Boolean) ?? [],
+          request.workspace,
+        )
+        const parsedReceipts = parseSpecialistReceipts(output)
+        if (request.step.kind === "tester" && parsedReceipts.length === 0) {
+          return {
+            status: "blocked",
+            summary: `Specialist ${specialist} returned a report without command receipts; tests cannot be treated as passed.`,
+            verification: [
+              `TaskTool specialist ${specialist} returned a completion report.`,
+              `Report: ${output.length > 1200 ? `${output.slice(0, 1199)}…` : output}`,
+              "Missing: at least one RECEIPT line proving which test command ran and its exit code.",
+            ],
+            changedFiles: changedFiles.length ? changedFiles : undefined,
+            next: ["Rerun the tester step with RECEIPT lines for every test command, including failures."],
+          }
+        }
         return {
           summary: output.length > 4000 ? `${output.slice(0, 3999)}…` : output,
-          changedFiles: changedFiles?.length ? changedFiles : undefined,
+          changedFiles: changedFiles.length ? changedFiles : undefined,
           verification: [
             `TaskTool specialist ${specialist} returned a completion report.`,
             `Report: ${output.length > 1200 ? `${output.slice(0, 1199)}…` : output}`,
+            ...(parsedReceipts.length
+              ? parsedReceipts.map((receipt) => `${receipt.exitCode === 0 ? "PASS" : "FAIL"}: ${receipt.command}`)
+              : ["No command receipts were included in the report."]),
           ],
+          receipts: parsedReceipts.length
+            ? parsedReceipts.map((receipt) =>
+                createVerificationReceipt({
+                  command: receipt.command,
+                  exitCode: receipt.exitCode,
+                  output: receipt.output,
+                }),
+              )
+            : undefined,
         }
       }
 

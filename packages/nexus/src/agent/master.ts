@@ -123,6 +123,8 @@ export type MasterAgentOptions = {
   statePath?: string
   maxStepAttempts?: number
   requireWorkerVerification?: boolean
+  autoRepair?: boolean
+  maxAutoRepairs?: number
   signal?: AbortSignal
   hooks?: MasterHooks
 }
@@ -185,7 +187,7 @@ export function suggestAdaptiveMasterPlan(input: {
   const intent = classifyAdaptiveIntent(input.objective, capabilities)
   return {
     intent,
-    steps: suggestMasterSteps(input.objective),
+    steps: withAcceptanceCriteria(suggestMasterSteps(input.objective)),
     missingFeatures: input.registry ? missingVerifiedFeatures(input.registry, intent) : [],
   }
 }
@@ -273,6 +275,15 @@ function clone<T>(value: T): T {
 function dependencySatisfied(step: MasterStep, dependency: string, task: MasterTask): boolean {
   const status = task.steps.find((item) => item.id === dependency)?.status
   return status === "completed" || (step.id.endsWith("-repair") && (status === "failed" || status === "blocked"))
+}
+
+function isStepResolved(step: MasterStep, task: MasterTask): boolean {
+  if (step.status === "completed") return true
+  if (step.status !== "failed" && step.status !== "blocked") return false
+  const repair = task.steps.find((item) => item.id === `${step.id}-repair`)
+  const verify = task.steps.find((item) => item.id === `${step.id}-verify`)
+  if (!repair || !verify || verify.status !== "completed") return false
+  return repair.status === "completed" || isStepResolved(repair, task)
 }
 
 function safeError(error: unknown): string {
@@ -431,6 +442,10 @@ export class MasterAgent {
       return this.snapshot()
     }
 
+    const autoRepair = this.options.autoRepair ?? true
+    const maxAutoRepairs = Math.max(0, this.options.maxAutoRepairs ?? 3)
+    let autoRepairs = 0
+
     while (true) {
       if (this.options.signal?.aborted) {
         task.status = "cancelled"
@@ -444,11 +459,21 @@ export class MasterAgent {
         (step) =>
           step.status !== "completed" &&
           step.status !== "failed" &&
+          step.status !== "blocked" &&
           step.dependsOn.every((dependency) => dependencySatisfied(step, dependency, task)),
       )
       if (!next) {
-        if (task.steps.some((step) => step.status === "failed")) return this.snapshot()
-        if (task.steps.every((step) => step.status === "completed")) return this.snapshot()
+        if (task.steps.some((step) => step.status === "failed" && !isStepResolved(step, task)))
+          return this.snapshot()
+        if (task.steps.every((step) => isStepResolved(step, task))) {
+          task.status = "completed"
+          task.error = undefined
+          task.activeStepID = undefined
+          task.updatedAt = now()
+          await this.checkpoint()
+          return this.snapshot()
+        }
+        if (task.steps.some((step) => step.status === "blocked")) return this.snapshot()
         task.status = "blocked"
         task.error = "No executable Master step remains; dependencies may be cyclic or invalid"
         await this.checkpoint()
@@ -456,7 +481,15 @@ export class MasterAgent {
       }
 
       const result = await this.executeStep(next.id, dispatcher)
-      if (result.status === "failed" || result.status === "blocked") return result
+      if (result.status !== "failed" && result.status !== "blocked") continue
+      if (!autoRepair || autoRepairs >= maxAutoRepairs) return result
+      const terminal = this.requireTask().steps.find((step) => step.id === next.id)
+      if (!terminal || (terminal.status !== "failed" && terminal.status !== "blocked")) continue
+      const before = this.requireTask().steps.length
+      await this.replanFailedStep(terminal.id)
+      if (this.requireTask().steps.length === before) return this.snapshot()
+      autoRepairs += 1
+      this.status(`Auto-repair ${autoRepairs}/${maxAutoRepairs} queued for step ${terminal.id}`)
     }
   }
 
@@ -502,7 +535,7 @@ export class MasterAgent {
           signal: this.options.signal,
         })
         const effectiveResult =
-          this.options.requireWorkerVerification &&
+          (this.options.requireWorkerVerification ?? true) &&
           result.status !== "blocked" &&
           !result.verification?.length &&
           !result.receipts?.length
