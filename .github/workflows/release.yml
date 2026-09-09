@@ -22,7 +22,10 @@ jobs:
           bun-version: "1.4.0"
 
       - name: Install system build deps (node-pty / native modules)
-        run: sudo apt-get update && sudo apt-get install -y build-essential python3
+        # The preinstalled Chrome apt repo often serves a stale index (Hash Sum
+        # mismatch), which must not fail the whole job: our deps come from the
+        # Ubuntu archives, so a partial update is fine.
+        run: sudo apt-get update || true && sudo apt-get install -y build-essential python3
 
       # Hardlink backend fails to materialize node_modules on this bun/x64 combo.
       - name: Install dependencies
@@ -70,7 +73,10 @@ jobs:
           bun-version: "1.4.0"
 
       - name: Install system build deps (node-pty / native modules)
-        run: sudo apt-get update && sudo apt-get install -y build-essential python3
+        # The preinstalled Chrome apt repo often serves a stale index (Hash Sum
+        # mismatch), which must not fail the whole job: our deps come from the
+        # Ubuntu archives, so a partial update is fine.
+        run: sudo apt-get update || true && sudo apt-get install -y build-essential python3
 
       # Hardlink backend fails to materialize node_modules on this bun/x64 combo.
       - name: Install dependencies
