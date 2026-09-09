@@ -369,7 +369,9 @@ describe("MasterAgent", () => {
 
     expect(seen).toEqual(["test", "test-repair", "test-verify"])
     expect(result.status).toBe("completed")
-    expect(result.steps.every((step) => step.status === "completed")).toBe(true)
+    expect(result.steps.find((step) => step.id === "test")?.status).toBe("blocked")
+    expect(result.steps.find((step) => step.id === "test-repair")?.status).toBe("completed")
+    expect(result.steps.find((step) => step.id === "test-verify")?.status).toBe("completed")
   })
 
   test("auto-repair stays bounded when every step keeps blocking", async () => {
