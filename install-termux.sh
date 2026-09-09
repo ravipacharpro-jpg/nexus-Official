@@ -1,11 +1,11 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
 
-# NEXUS Termux installer for ravipacharpro-jpg/nexus-agent-hear.
+# NEXUS Termux installer for agenthubnow/nexus.
 # Installs the source tree and runs the CLI with Bun, which avoids relying on
 # Linux/glibc release binaries that do not run natively on Android/Termux.
 
-REPO_URL="${NEXUS_REPO_URL:-https://github.com/ravipacharpro-jpg/nexus-agent-hear.git}"
+REPO_URL="${NEXUS_REPO_URL:-https://github.com/agenthubnow/nexus.git}"
 INSTALL_ROOT="${NEXUS_HOME:-$HOME/.nexus}"
 SOURCE_DIR="$INSTALL_ROOT/source"
 BIN_DIR="${NEXUS_BIN_DIR:-$HOME/bin}"

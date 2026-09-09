@@ -112,7 +112,7 @@ describe("MasterAgent", () => {
     })
     await agent.create("Fix and test the project")
     await agent.plan([{ id: "test", kind: "tester", title: "Run tests", dependsOn: [] }])
-    await agent.executePlan(async () => ({ summary: "tests passed" }))
+    await agent.executePlan(async () => ({ summary: "tests passed", verification: ["bun test: 3 passed"] }))
 
     expect(events).toEqual(["test:started:1", "test:completed:1"])
   })
@@ -203,7 +203,7 @@ describe("MasterAgent", () => {
     const order: string[] = []
     const result = await agent.executePlan(async (request) => {
       order.push(request.step.id)
-      return { summary: `completed ${request.step.id}` }
+      return { summary: `completed ${request.step.id}`, verification: [`${request.step.id} evidence recorded`] }
     })
 
     expect(order).toEqual(["inspect", "verify"])
@@ -263,7 +263,7 @@ describe("MasterAgent", () => {
     let received: string[] = []
     await agent.executeStep("browser", async (request) => {
       received = request.capabilities.packageManagers
-      return { summary: "Capability check complete" }
+      return { summary: "Capability check complete", verification: ["capabilities inspected"] }
     })
 
     expect(Array.isArray(received)).toBe(true)
@@ -338,5 +338,69 @@ describe("MasterAgent", () => {
     expect(recovered?.status).toBe("paused")
     expect(recovered?.queuedInstructions).toEqual(["Also check the mobile layout"])
     expect(recovered?.objective).toBe("Inspect a web app")
+  })
+
+  test("verification is required by default even without the explicit flag", async () => {
+    const root = await workspace()
+    const agent = new MasterAgent({ workspace: root })
+    await agent.create("Verify the implementation")
+    await agent.plan([{ id: "test", kind: "tester", title: "Run tests", dependsOn: [] }])
+
+    const state = await agent.executeStep("test", async () => ({ summary: "tests probably passed" }))
+
+    expect(state.status).toBe("blocked")
+    expect(state.error).toContain("verification evidence")
+  })
+
+  test("executePlan auto-repairs a blocked step and completes the follow-ups", async () => {
+    const root = await workspace()
+    const agent = new MasterAgent({ workspace: root })
+    await agent.create("Fix and test the project")
+    await agent.plan([{ id: "test", kind: "tester", title: "Run tests", dependsOn: [] }])
+
+    const seen: string[] = []
+    const result = await agent.executePlan(async (request) => {
+      seen.push(request.step.id)
+      if (request.step.id === "test") {
+        return { status: "blocked" as const, summary: "tests failed on main" }
+      }
+      return { summary: `repaired ${request.step.id}`, verification: [`${request.step.id} evidence recorded`] }
+    })
+
+    expect(seen).toEqual(["test", "test-repair", "test-verify"])
+    expect(result.status).toBe("completed")
+    expect(result.steps.find((step) => step.id === "test")?.status).toBe("blocked")
+    expect(result.steps.find((step) => step.id === "test-repair")?.status).toBe("completed")
+    expect(result.steps.find((step) => step.id === "test-verify")?.status).toBe("completed")
+  })
+
+  test("auto-repair stays bounded when every step keeps blocking", async () => {
+    const root = await workspace()
+    const agent = new MasterAgent({ workspace: root, maxAutoRepairs: 2 })
+    await agent.create("Fix the unfixable")
+    await agent.plan([{ id: "test", kind: "tester", title: "Run tests", dependsOn: [] }])
+
+    const result = await agent.executePlan(async () => ({
+      status: "blocked" as const,
+      summary: "still blocked",
+    }))
+
+    expect(result.status).toBe("blocked")
+    expect(result.steps).toHaveLength(5)
+  })
+
+  test("auto-repair can be disabled to preserve fail-fast behavior", async () => {
+    const root = await workspace()
+    const agent = new MasterAgent({ workspace: root, autoRepair: false })
+    await agent.create("Fix and test the project")
+    await agent.plan([{ id: "test", kind: "tester", title: "Run tests", dependsOn: [] }])
+
+    const result = await agent.executePlan(async () => ({
+      status: "blocked" as const,
+      summary: "tests failed on main",
+    }))
+
+    expect(result.status).toBe("blocked")
+    expect(result.steps).toHaveLength(1)
   })
 })

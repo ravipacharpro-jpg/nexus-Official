@@ -40,6 +40,7 @@ export type MasterStep = {
   title: string
   status: MasterStepStatus
   dependsOn: string[]
+  acceptanceCriteria?: string[]
   attempts: number
   maxAttempts: number
   startedAt?: string
@@ -122,8 +123,55 @@ export type MasterAgentOptions = {
   statePath?: string
   maxStepAttempts?: number
   requireWorkerVerification?: boolean
+  autoRepair?: boolean
+  maxAutoRepairs?: number
   signal?: AbortSignal
   hooks?: MasterHooks
+}
+
+export type MasterPlanStep = Pick<MasterStep, "id" | "kind" | "title" | "dependsOn"> & {
+  acceptanceCriteria?: string[]
+}
+
+export type MasterPlanProvider = (
+  objective: string,
+) => Promise<readonly MasterPlanStep[] | undefined> | readonly MasterPlanStep[] | undefined
+
+export function acceptanceCriteriaFor(kind: WorkerKind, title: string): string[] {
+  const scope = title.trim() || kind
+  if (kind === "coder") return [`${scope}: diff inspected`, `${scope}: narrowest relevant test passes`]
+  if (kind === "tester")
+    return [`${scope}: focused checks run with exitCode 0`, `${scope}: receipts recorded with output hashes`]
+  if (kind === "reviewer") return [`${scope}: changed files listed`, `${scope}: remaining risks reported`]
+  if (kind === "research") return [`${scope}: constraints and options summarized with sources`]
+  if (kind === "docs") return [`${scope}: touched guides updated without unrelated edits`]
+  if (kind === "git") return [`${scope}: branch and working-tree state reported`, `${scope}: no unapproved mutation`]
+  if (kind === "browser")
+    return [`${scope}: inspected URL, HTTP status and findings reported`, `${scope}: takeover items listed`]
+  if (kind === "web" || kind === "android")
+    return [`${scope}: detected target and commands reported`, `${scope}: PASS/FAIL per command with receipts`]
+  return [`${scope}: completion evidence recorded`]
+}
+
+function withAcceptanceCriteria(steps: Array<Pick<MasterStep, "id" | "kind" | "title" | "dependsOn">>): MasterPlanStep[] {
+  return steps.map((step) => ({ ...step, acceptanceCriteria: acceptanceCriteriaFor(step.kind, step.title) }))
+}
+
+export async function suggestMasterStepsWithPlanner(
+  objective: string,
+  planner?: MasterPlanProvider,
+): Promise<MasterPlanStep[]> {
+  if (planner) {
+    const planned = await planner(objective)
+    if (planned && planned.length > 0) {
+      return planned.map((step) => ({
+        ...step,
+        dependsOn: [...step.dependsOn],
+        acceptanceCriteria: step.acceptanceCriteria ?? acceptanceCriteriaFor(step.kind, step.title),
+      }))
+    }
+  }
+  return withAcceptanceCriteria(suggestMasterSteps(objective))
 }
 
 export function suggestAdaptiveMasterPlan(input: {
@@ -132,35 +180,42 @@ export function suggestAdaptiveMasterPlan(input: {
   registry?: CapabilityRegistry
 }): {
   intent: AdaptiveIntent
-  steps: Array<Pick<MasterStep, "id" | "kind" | "title" | "dependsOn">>
+  steps: MasterPlanStep[]
   missingFeatures: string[]
 } {
   const capabilities = input.capabilities ?? detectAgentCapabilities()
   const intent = classifyAdaptiveIntent(input.objective, capabilities)
   return {
     intent,
-    steps: suggestMasterSteps(input.objective),
+    steps: withAcceptanceCriteria(suggestMasterSteps(input.objective)),
     missingFeatures: input.registry ? missingVerifiedFeatures(input.registry, intent) : [],
   }
 }
 
 export function replanFailedMasterStep(input: {
   step: Pick<MasterStep, "id" | "kind" | "title" | "status" | "error" | "next">
-}): Array<Pick<MasterStep, "id" | "kind" | "title" | "dependsOn">> {
+}): MasterPlanStep[] {
   if (input.step.status !== "failed" && input.step.status !== "blocked") return []
   const repairID = `${input.step.id}-repair`
+  const repairTitle = `Repair ${input.step.title}${input.step.error ? `: ${input.step.error.slice(0, 160)}` : ""}`
+  const verifyTitle = `Verify repaired ${input.step.title}`
   return [
     {
       id: repairID,
       kind: input.step.kind === "tester" ? "coder" : input.step.kind,
-      title: `Repair ${input.step.title}${input.step.error ? `: ${input.step.error.slice(0, 160)}` : ""}`,
+      title: repairTitle,
       dependsOn: [input.step.id],
+      acceptanceCriteria: acceptanceCriteriaFor(
+        input.step.kind === "tester" ? "coder" : input.step.kind,
+        repairTitle,
+      ),
     },
     {
       id: `${input.step.id}-verify`,
       kind: "tester",
-      title: `Verify repaired ${input.step.title}`,
+      title: verifyTitle,
       dependsOn: [repairID],
+      acceptanceCriteria: acceptanceCriteriaFor("tester", verifyTitle),
     },
   ]
 }
@@ -220,6 +275,15 @@ function clone<T>(value: T): T {
 function dependencySatisfied(step: MasterStep, dependency: string, task: MasterTask): boolean {
   const status = task.steps.find((item) => item.id === dependency)?.status
   return status === "completed" || (step.id.endsWith("-repair") && (status === "failed" || status === "blocked"))
+}
+
+function isStepResolved(step: MasterStep, task: MasterTask): boolean {
+  if (step.status === "completed") return true
+  if (step.status !== "failed" && step.status !== "blocked") return false
+  const repair = task.steps.find((item) => item.id === `${step.id}-repair`)
+  const verify = task.steps.find((item) => item.id === `${step.id}-verify`)
+  if (!repair || !verify || verify.status !== "completed") return false
+  return repair.status === "completed" || isStepResolved(repair, task)
 }
 
 function safeError(error: unknown): string {
@@ -313,9 +377,9 @@ export class MasterAgent {
     return this.executePlan(dispatcher)
   }
 
-  async autoPlan(): Promise<MasterTask> {
+  async autoPlan(planner?: MasterPlanProvider): Promise<MasterTask> {
     const task = this.requireTask()
-    return this.plan(suggestMasterSteps(task.objective))
+    return this.plan(await suggestMasterStepsWithPlanner(task.objective, planner))
   }
   async replanFailedStep(stepID: string): Promise<MasterTask> {
     const task = this.requireTask()
@@ -340,13 +404,16 @@ export class MasterAgent {
     return this.snapshot()
   }
 
-  async plan(steps: Array<Pick<MasterStep, "id" | "kind" | "title" | "dependsOn">>): Promise<MasterTask> {
+  async plan(steps: MasterPlanStep[]): Promise<MasterTask> {
     const task = this.requireTask()
     task.status = "planning"
     task.steps = steps.map((step) => ({
       ...step,
       status: "dispatching",
       dependsOn: [...step.dependsOn],
+      acceptanceCriteria: step.acceptanceCriteria
+        ? [...step.acceptanceCriteria]
+        : acceptanceCriteriaFor(step.kind, step.title),
       attempts: 0,
       maxAttempts: this.options.maxStepAttempts ?? 2,
     }))
@@ -375,6 +442,10 @@ export class MasterAgent {
       return this.snapshot()
     }
 
+    const autoRepair = this.options.autoRepair ?? true
+    const maxAutoRepairs = Math.max(0, this.options.maxAutoRepairs ?? 3)
+    let autoRepairs = 0
+
     while (true) {
       if (this.options.signal?.aborted) {
         task.status = "cancelled"
@@ -388,11 +459,21 @@ export class MasterAgent {
         (step) =>
           step.status !== "completed" &&
           step.status !== "failed" &&
+          step.status !== "blocked" &&
           step.dependsOn.every((dependency) => dependencySatisfied(step, dependency, task)),
       )
       if (!next) {
-        if (task.steps.some((step) => step.status === "failed")) return this.snapshot()
-        if (task.steps.every((step) => step.status === "completed")) return this.snapshot()
+        if (task.steps.some((step) => step.status === "failed" && !isStepResolved(step, task)))
+          return this.snapshot()
+        if (task.steps.every((step) => isStepResolved(step, task))) {
+          task.status = "completed"
+          task.error = undefined
+          task.activeStepID = undefined
+          task.updatedAt = now()
+          await this.checkpoint()
+          return this.snapshot()
+        }
+        if (task.steps.some((step) => step.status === "blocked")) return this.snapshot()
         task.status = "blocked"
         task.error = "No executable Master step remains; dependencies may be cyclic or invalid"
         await this.checkpoint()
@@ -400,7 +481,15 @@ export class MasterAgent {
       }
 
       const result = await this.executeStep(next.id, dispatcher)
-      if (result.status === "failed" || result.status === "blocked") return result
+      if (result.status !== "failed" && result.status !== "blocked") continue
+      if (!autoRepair || autoRepairs >= maxAutoRepairs) return result
+      const terminal = this.requireTask().steps.find((step) => step.id === next.id)
+      if (!terminal || (terminal.status !== "failed" && terminal.status !== "blocked")) continue
+      const before = this.requireTask().steps.length
+      await this.replanFailedStep(terminal.id)
+      if (this.requireTask().steps.length === before) return this.snapshot()
+      autoRepairs += 1
+      this.status(`Auto-repair ${autoRepairs}/${maxAutoRepairs} queued for step ${terminal.id}`)
     }
   }
 
@@ -446,7 +535,7 @@ export class MasterAgent {
           signal: this.options.signal,
         })
         const effectiveResult =
-          this.options.requireWorkerVerification &&
+          (this.options.requireWorkerVerification ?? true) &&
           result.status !== "blocked" &&
           !result.verification?.length &&
           !result.receipts?.length

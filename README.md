@@ -48,27 +48,27 @@
 
 ```bash
 # Termux source installer (native Android / no root)
-curl -fsSL https://raw.githubusercontent.com/ravipacharpro-jpg/nexus-agent-hear/main/install-termux.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agenthubnow/nexus/main/install-termux.sh | bash
 
 # Termux: reload your shell, then start the agent
 source ~/.bashrc && nexus
 
 # Linux and PC installer
-curl -fsSL https://raw.githubusercontent.com/ravipacharpro-jpg/nexus-agent-hear/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agenthubnow/nexus/main/install.sh | bash
 
 # Pin the latest verified installer-compatible version
-curl -fsSL https://raw.githubusercontent.com/ravipacharpro-jpg/nexus-agent-hear/main/install.sh | bash -s -- --version 0.1.67
+curl -fsSL https://raw.githubusercontent.com/agenthubnow/nexus/main/install.sh | bash -s -- --version 0.1.84
 
 # Package managers
 npm i -g nexus-ai@latest        # or bun/pnpm/yarn
 scoop install nexus             # Windows
 choco install nexus             # Windows
-brew install itzgeniusboy/nexus # macOS and Linux (recommended, always up to date)
+brew install agenthubnow/nexus # macOS and Linux (recommended, always up to date)
 brew install nexus              # macOS and Linux (official brew formula, updated less)
 sudo pacman -S nexus            # Arch Linux (Stable)
 paru -S nexus-bin               # Arch Linux (Latest from AUR)
 mise use -g nexus               # Any OS
-nix run nixpkgs#nexus           # or github:itzgeniusboy/nexus for latest dev branch
+nix run nixpkgs#nexus           # or github:agenthubnow/nexus for latest dev branch
 ```
 
 > [!TIP]

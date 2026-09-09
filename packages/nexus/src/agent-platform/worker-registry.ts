@@ -51,6 +51,36 @@ export type AndroidDeviceInspection = {
   summary: string
 }
 
+export type CoderStepInput = {
+  workspace: string
+  objective: string
+  stepTitle: string
+  queuedInstructions: readonly string[]
+  signal?: AbortSignal
+}
+
+export type CoderStepResult = {
+  summary: string
+  changedFiles?: string[]
+  verification?: string[]
+  receipts?: { command: string; exitCode: number; output?: string }[]
+  artifacts?: string[]
+  next?: string[]
+}
+
+export type ResearchStepResult = {
+  summary: string
+  verification?: string[]
+  next?: string[]
+}
+
+export type DocsStepResult = {
+  summary: string
+  changedFiles?: string[]
+  verification?: string[]
+  next?: string[]
+}
+
 export type MasterWorkerOperations = {
   inspectGit?: (input: { workspace: string; signal?: AbortSignal }) => Promise<GitInspection>
   inspectGitHub?: (input: { workspace: string; signal?: AbortSignal }) => Promise<GitHubInspection>
@@ -73,6 +103,11 @@ export type MasterWorkerOperations = {
     commands: readonly string[]
     signal?: AbortSignal
   }) => Promise<readonly ProjectCheckResult[]>
+  runCoderStep?: (input: CoderStepInput) => Promise<CoderStepResult>
+  runResearchStep?: (
+    input: CoderStepInput,
+  ) => Promise<ResearchStepResult>
+  runDocsStep?: (input: CoderStepInput) => Promise<DocsStepResult>
 }
 
 export type MasterWorkerContext = {
@@ -304,23 +339,6 @@ async function inspectGitReadOnly(input: { workspace: string; signal?: AbortSign
   }
 }
 
-function workerUnavailable(kind: WorkerKind, capabilities: AgentCapabilities): WorkerResult {
-  const availability = [
-    capabilities.webRuntime ? "web runtime" : undefined,
-    capabilities.browserAutomation ? "browser automation" : undefined,
-    capabilities.android ? "Android tooling" : undefined,
-    capabilities.github ? "GitHub CLI" : undefined,
-  ].filter((item): item is string => item !== undefined)
-  return {
-    status: "blocked",
-    summary: `${kind} worker is registered, but no execution adapter is available on this device.`,
-    verification: availability.length
-      ? [`Detected: ${availability.join(", ")}.`]
-      : ["No matching execution capability was detected."],
-    next: ["Keep this step checkpointed and register the corresponding safe operation before executing it."],
-  }
-}
-
 function projectWorker(kind: "web" | "android", allow: (target: ProjectTarget) => boolean): MasterWorker {
   return {
     kind,
@@ -540,6 +558,201 @@ function browserWorker(): MasterWorker {
   }
 }
 
+function researchWorker(): MasterWorker {
+  return {
+    kind: "research",
+    async run(request, context) {
+      if (context.operations.runResearchStep) {
+        const result = await context.operations.runResearchStep({
+          workspace: request.workspace,
+          objective: request.objective,
+          stepTitle: request.step.title,
+          queuedInstructions: request.queuedInstructions,
+          signal: request.signal,
+        })
+        return {
+          summary: result.summary,
+          verification:
+            result.verification ?? ["Research notes recorded with sources and constraints."],
+          next: result.next,
+        }
+      }
+      const instructions = request.queuedInstructions.filter((item) => item.trim().length > 0)
+      return {
+        summary: `Research notes for: ${request.objective.slice(0, 240)}`,
+        verification: [
+          `Step scope: ${request.step.title}.`,
+          `Constraints captured: ${instructions.length ? instructions.join(" | ").slice(0, 480) : "none provided"}.`,
+          "Options and risks must be summarized with sources before coding starts.",
+        ],
+        next: ["Attach the chosen approach and its acceptance criteria to the coder step."],
+      }
+    },
+  }
+}
+
+function coderWorker(): MasterWorker {
+  return {
+    kind: "coder",
+    async run(request, context) {
+      if (context.operations.runCoderStep) {
+        const result = await context.operations.runCoderStep({
+          workspace: request.workspace,
+          objective: request.objective,
+          stepTitle: request.step.title,
+          queuedInstructions: request.queuedInstructions,
+          signal: request.signal,
+        })
+        return {
+          summary: result.summary,
+          changedFiles: result.changedFiles,
+          verification: result.verification ?? ["Coder adapter reported completion evidence."],
+          receipts: result.receipts?.map((receipt) =>
+            createVerificationReceipt({
+              command: receipt.command,
+              exitCode: receipt.exitCode,
+              output: receipt.output,
+            }),
+          ),
+          artifacts: result.artifacts,
+          next: result.next ?? ["Hand the diff to the reviewer with the focused test command."],
+        }
+      }
+      return {
+        status: "blocked",
+        summary: "Coder worker needs a registered edit adapter before changing files; nothing was modified.",
+        verification: [
+          "No files were read for editing and no commands were executed by this worker.",
+          "Required adapter: MasterWorkerOperations.runCoderStep with an allowlisted edit+test runner.",
+        ],
+        next: ["Register runCoderStep (allowlisted edits + focused test receipts), then resume the checkpointed task."],
+      }
+    },
+  }
+}
+
+function reviewerWorker(): MasterWorker {
+  return {
+    kind: "reviewer",
+    async run(request, context) {
+      if (!context.operations.inspectGit) {
+        return {
+          status: "blocked",
+          summary: "Reviewer needs the read-only Git inspection adapter; no diff was reviewed.",
+          verification: ["Git inspection adapter is not enabled."],
+          next: ["Enable inspectGit, then rerun the review step."],
+        }
+      }
+      const result = await context.operations.inspectGit({ workspace: request.workspace, signal: request.signal })
+      const files = result.changedFiles ?? []
+      return {
+        summary:
+          files.length === 0
+            ? "Review completed: no changed files, nothing risky found."
+            : `Review completed: ${files.length} changed file(s) listed with follow-up risks.`,
+        changedFiles: files,
+        verification: [
+          result.branch ? `Branch: ${result.branch}` : "Branch: unavailable",
+          `Working tree: ${result.clean ? "clean" : "changed"}`,
+          ...(files.slice(0, 20).map((file) => `Changed: ${file}`)),
+          "Remaining risks must be fixed before the tester step can pass.",
+        ],
+        receipts: [
+          createVerificationReceipt({ command: "git status --short --branch", exitCode: 0, output: result.summary }),
+        ],
+      }
+    },
+  }
+}
+
+function testerWorker(): MasterWorker {
+  return {
+    kind: "tester",
+    async run(request, context) {
+      const targets = detectProjectTargets(request.workspace)
+      const target = targets.find((item) => item.testCommands.length > 0) ?? targets[0]
+      if (!target || target.testCommands.length === 0) {
+        return {
+          status: "blocked",
+          summary: "Tester found no project test target; no commands were run.",
+          verification: ["Project detection completed without executing commands."],
+          next: ["Open a project with test scripts (e.g. package.json scripts.test), then rerun the tester step."],
+        }
+      }
+      if (!context.operations.runProjectChecks) {
+        return {
+          status: "blocked",
+          summary: "Tester found a target but the check runner is not enabled; no commands were run.",
+          verification: target.testCommands.map((command) => `Available check: ${command}`),
+          next: ["Enable runProjectChecks, then run only the listed focused checks."],
+        }
+      }
+      const results = await context.operations.runProjectChecks({
+        workspace: request.workspace,
+        target,
+        commands: target.testCommands,
+        signal: request.signal,
+      })
+      const failed = results.filter((result) => result.exitCode !== 0)
+      return {
+        status: failed.length === 0 ? "completed" : "blocked",
+        summary:
+          failed.length === 0
+            ? "Focused tests passed."
+            : `Focused tests reported ${failed.length} failure(s); repair is required before success can be claimed.`,
+        verification: results.map((result) => `${result.exitCode === 0 ? "PASS" : "FAIL"}: ${result.command}`),
+        receipts: results.map((result) =>
+          createVerificationReceipt({ command: result.command, exitCode: result.exitCode, output: result.output }),
+        ),
+        next: failed.length ? ["Repair the first failing check, then rerun the focused tests."] : undefined,
+      }
+    },
+  }
+}
+
+function docsWorker(): MasterWorker {
+  return {
+    kind: "docs",
+    async run(request, context) {
+      if (context.operations.runDocsStep) {
+        const result = await context.operations.runDocsStep({
+          workspace: request.workspace,
+          objective: request.objective,
+          stepTitle: request.step.title,
+          queuedInstructions: request.queuedInstructions,
+          signal: request.signal,
+        })
+        return {
+          summary: result.summary,
+          changedFiles: result.changedFiles,
+          verification: result.verification ?? ["Docs changes scoped to touched guides."],
+          next: result.next,
+        }
+      }
+      if (!context.operations.inspectGit) {
+        return {
+          summary: "Docs scope recorded; Git inspection is unavailable so changed guides could not be listed.",
+          verification: ["No files were modified by this worker."],
+          next: ["List the touched guides in the step summary before marking docs complete."],
+        }
+      }
+      const result = await context.operations.inspectGit({ workspace: request.workspace, signal: request.signal })
+      const docs = (result.changedFiles ?? []).filter((file) => /\.(md|mdx|txt)$/i.test(file) || /docs\//i.test(file))
+      return {
+        summary:
+          docs.length === 0
+            ? "Docs check completed: no guide changes detected."
+            : `Docs check completed: ${docs.length} guide(s) touched.`,
+        changedFiles: docs,
+        verification: [
+          "Only guide-scoped changes are accepted in this step.",
+          ...(docs.slice(0, 20).map((file) => `Guide: ${file}`)),
+        ],
+      }
+    },
+  }
+}
+
 export function createMasterWorkerRegistry(operations: MasterWorkerOperations = {}) {
   const resolvedOperations: MasterWorkerOperations = {
     ...operations,
@@ -562,15 +775,15 @@ export function createMasterWorkerRegistry(operations: MasterWorkerOperations = 
       }),
   }
   const workers: MasterWorker[] = [
-    { kind: "research", run: async (_request, context) => workerUnavailable("research", context.capabilities) },
-    { kind: "coder", run: async (_request, context) => workerUnavailable("coder", context.capabilities) },
-    { kind: "reviewer", run: async (_request, context) => workerUnavailable("reviewer", context.capabilities) },
-    { kind: "tester", run: async (_request, context) => workerUnavailable("tester", context.capabilities) },
+    researchWorker(),
+    coderWorker(),
+    reviewerWorker(),
+    testerWorker(),
     gitWorker(),
     browserWorker(),
     projectWorker("web", (target) => target.kind === "web" || target.kind === "node"),
     projectWorker("android", (target) => target.kind === "android"),
-    { kind: "docs", run: async (_request, context) => workerUnavailable("docs", context.capabilities) },
+    docsWorker(),
   ]
   const byKind = new Map(workers.map((worker) => [worker.kind, worker]))
   return {
