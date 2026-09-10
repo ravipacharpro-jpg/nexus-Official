@@ -110,6 +110,21 @@ export const PROVIDER_CONTRACTS: Record<string, ProviderContract> = {
     npm: "@ai-sdk/cerebras",
     env: ["CEREBRAS_API_KEY"],
   },
+  "edge-router": {
+    id: "edge-router",
+    label: "Edge Router",
+    modelsEndpoint: "https://edge-ai-router.vercel.app/api/v1/models",
+    auth: "bearer",
+    baseURL: "https://edge-ai-router.vercel.app/api/v1",
+    npm: "@ai-sdk/openai-compatible",
+    env: ["EDGE_ROUTER_API_KEY"],
+    curatedModels: [
+      { id: "gemini-flash-latest", name: "Gemini Flash (Edge Router)", context: 1048576, output: 8192, toolCall: true, reasoning: false, input: ["text"] },
+      { id: "gemini-3.6-flash", name: "Gemini 3.6 Flash (Edge Router)", context: 1048576, output: 8192, toolCall: true, reasoning: false, input: ["text"] },
+      { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B (Edge Router)", context: 128000, output: 8192, toolCall: true, reasoning: false, input: ["text"] },
+      { id: "google/gemma-4-31b-it:free", name: "Gemma 4 31B free (Edge Router)", context: 128000, output: 8192, toolCall: true, reasoning: false, input: ["text"] },
+    ],
+  },
   openai: {
     id: "openai",
     label: "OpenAI",
