@@ -136,6 +136,7 @@ export const PROVIDER_FALLBACK_ORDER = [
 
 /** Canonical low-cost/free model order used by setup, default selection, and model tests. */
 export const PREFERRED_MODELS = {
+  "edge-router": ["gemini-flash-latest", "llama-3.3-70b-versatile", "gemini-3.6-flash", "google/gemma-4-31b-it:free"],
   groq: ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.6-27b"],
   openrouter: [
     "meta-llama/llama-3.1-8b-instruct:free",
