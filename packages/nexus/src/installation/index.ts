@@ -152,7 +152,7 @@ const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProcess.Serv
     const upgradeCurl = Effect.fnUntraced(
       function* (target: string) {
         const response = yield* httpOk.execute(
-          HttpClientRequest.get("https://raw.githubusercontent.com/itzgeniusboy/nexus/main/install.sh"),
+          HttpClientRequest.get("https://raw.githubusercontent.com/agenthubnow/nexus/main/install.sh"),
         )
         const body = yield* response.text
         const bodyBytes = new TextEncoder().encode(body)
@@ -262,7 +262,7 @@ const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProcess.Serv
         }
 
         const response = yield* httpOk.execute(
-          HttpClientRequest.get("https://api.github.com/repos/itzgeniusboy/nexus/releases/latest").pipe(
+          HttpClientRequest.get("https://api.github.com/repos/agenthubnow/nexus/releases/latest").pipe(
             HttpClientRequest.acceptJson,
           ),
         )
