@@ -7,8 +7,10 @@ import { Effect } from "effect"
 import { AbsolutePath } from "../schema"
 import { SkillV2 } from "../skill"
 import customizeNexusContent from "./skill/customize-nexus.md" with { type: "text" }
+import appSpecContent from "./skill/app-spec.md" with { type: "text" }
 
 export const CustomizeNexusContent = customizeNexusContent
+export const AppSpecContent = appSpecContent
 
 export const Plugin = define({
   id: "skill",
@@ -23,6 +25,18 @@ export const Plugin = define({
               "Use ONLY when the user is editing or creating nexus's own configuration: nexus.json, nexus.jsonc, files under .nexus/, or files under ~/.config/nexus/. Also use when creating or fixing nexus agents, subagents, commands, skills, plugins, MCP servers, or permission rules. Do not use for the user's own application code, or for any project that is not configuring nexus itself.",
             location: AbsolutePath.make("/builtin/customize-nexus.md"),
             content: CustomizeNexusContent,
+          }),
+        }),
+      )
+      draft.source(
+        SkillV2.EmbeddedSource.make({
+          type: "embedded",
+          skill: SkillV2.Info.make({
+            name: "app-spec",
+            description:
+              "Use when the user wants any app or website built: run the spec ritual (max 5 questions, spec.md, plan_exit approval) before any app code. Never guess screens or scope.",
+            location: AbsolutePath.make("/builtin/app-spec.md"),
+            content: AppSpecContent,
           }),
         }),
       )

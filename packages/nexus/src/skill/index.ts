@@ -36,6 +36,13 @@ const CUSTOMIZE_NEXUS_SKILL_DESCRIPTION =
   "Use ONLY when the user is editing or creating NEXUS's own configuration: nexus.json, nexus.jsonc, files under .nexus/, or files under ~/.config/nexus/. Also use when creating or fixing NEXUS agents, subagents, skills, plugins, MCP servers, or permission rules. Do not use for the user's own application code, or for any project that is not configuring NEXUS itself."
 const CUSTOMIZE_NEXUS_SKILL_BODY = SkillPlugin.CustomizeNexusContent
 
+// Built-in skill for app building. Runs the spec ritual (questions, spec.md,
+// plan_exit approval) before any app code so demand is never guessed.
+const APP_SPEC_SKILL_NAME = "app-spec"
+const APP_SPEC_SKILL_DESCRIPTION =
+  "Use when the user wants any app or website built: run the spec ritual (max 5 questions, spec.md, plan_exit approval) before any app code. Never guess screens or scope."
+const APP_SPEC_SKILL_BODY = SkillPlugin.AppSpecContent
+
 export const Info = Schema.Struct({
   name: Schema.String,
   description: Schema.optional(Schema.String),
@@ -383,6 +390,12 @@ const layer = Layer.effect(
           description: CUSTOMIZE_NEXUS_SKILL_DESCRIPTION,
           location: "<built-in>",
           content: CUSTOMIZE_NEXUS_SKILL_BODY,
+        }
+        s.skills[APP_SPEC_SKILL_NAME] = {
+          name: APP_SPEC_SKILL_NAME,
+          description: APP_SPEC_SKILL_DESCRIPTION,
+          location: "<built-in>",
+          content: APP_SPEC_SKILL_BODY,
         }
         yield* loadSkills(s, yield* InstanceState.get(discovered), events)
         return s
