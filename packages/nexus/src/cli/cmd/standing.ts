@@ -4,7 +4,7 @@ import path from "node:path"
 import type { Argv } from "yargs"
 import { parse } from "jsonc-parser"
 import { Global } from "@nexus-ai/core/global"
-import { denyRules, suggestLines } from "../../corrections"
+import { denyRules, suggestLines, applyCorrections } from "../../corrections"
 import { cmd } from "./cmd"
 
 function configPermission(): unknown {
@@ -14,7 +14,7 @@ function configPermission(): unknown {
     try {
       const data: unknown = parse(readFileSync(full, "utf8"))
       if (data && typeof data === "object" && "permission" in data) return data.permission
-      return undefined
+      continue
     } catch {
       continue
     }
@@ -31,21 +31,30 @@ const StandingSuggestCommand = cmd({
       .option("apply", { type: "boolean", default: false, describe: "append suggestions to this project's standing orders" }),
   handler: async (args: { json?: boolean; apply?: boolean }) => {
     const lines = suggestLines(denyRules(configPermission()))
+    if (args.apply) {
+      const dir = path.join(process.cwd(), ".nexus")
+      const file = path.join(dir, "standing-orders.md")
+      mkdirSync(dir, { recursive: true })
+      const previous = existsSync(file) ? readFileSync(file, "utf8") : "# Standing Orders\n\n"
+      const result = applyCorrections(previous, lines)
+      if (result.added > 0) writeFileSync(file, result.text)
+      if (args.json) {
+        console.log(JSON.stringify({ applied: result.added, skipped: lines.length - result.added }, null, 2))
+        return
+      }
+      console.log(
+        result.added === 0
+          ? "Already saved. Nothing new to append."
+          : `Appended ${result.added} correction(s) to ${file}. Review and edit freely.`,
+      )
+      return
+    }
     if (args.json) {
       console.log(JSON.stringify(lines, null, 2))
       return
     }
     if (lines.length === 0) {
       console.log("No denials recorded. Deny a tool once and its lesson shows up here.")
-      return
-    }
-    if (args.apply) {
-      const dir = path.join(process.cwd(), ".nexus")
-      const file = path.join(dir, "standing-orders.md")
-      mkdirSync(dir, { recursive: true })
-      const previous = existsSync(file) ? readFileSync(file, "utf8") : "# Standing Orders\n\n"
-      writeFileSync(file, `${previous}\n## Learned corrections\n${lines.map((line) => `- ${line}`).join("\n")}\n`)
-      console.log(`Appended ${lines.length} correction(s) to ${file}. Review and edit freely.`)
       return
     }
     console.log("Suggested standing orders (re-run with --apply to save):")

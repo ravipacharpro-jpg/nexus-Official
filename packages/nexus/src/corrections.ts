@@ -16,9 +16,11 @@ function isDeny(value: unknown): boolean {
 }
 
 // Walks a permission config object ({ tool: "deny" | { pattern: "deny" } })
-// and collects every deny as a correction. Unknown shapes are ignored, never
-// fatal: config parsing already validated the file.
+// and collects every deny as a correction. A bare top-level "deny" means
+// deny-by-default and becomes one broad suggestion. Unknown shapes are
+// ignored, never fatal: config parsing already validated the file.
 export function denyRules(config: unknown): Denial[] {
+  if (config === "deny") return [{ tool: "*", pattern: "*" }]
   if (!isRecord(config)) return []
   const denials: Denial[] = []
   for (const [tool, rule] of Object.entries(config)) {
@@ -35,9 +37,17 @@ export function denyRules(config: unknown): Denial[] {
 }
 
 export function suggestLines(denials: Denial[]): string[] {
-  return denials.map((denial) =>
-    denial.pattern === "*"
+  return denials.map((denial) => {
+    if (denial.tool === "*" && denial.pattern === "*") return "Deny-by-default is on: every tool asks first."
+    return denial.pattern === "*"
       ? `Never run \`${denial.tool}\` without asking first.`
-      : `Never run \`${denial.tool}\` on \`${denial.pattern}\` without asking first.`,
-  )
+      : `Never run \`${denial.tool}\` on \`${denial.pattern}\` without asking first.`
+  })
+}
+
+// Idempotent append: re-running --apply never duplicates saved lines.
+export function applyCorrections(previous: string, lines: string[]): { text: string; added: number } {
+  const fresh = lines.filter((line) => !previous.includes(line))
+  if (fresh.length === 0) return { text: previous, added: 0 }
+  return { text: `${previous}\n## Learned corrections\n${fresh.map((line) => `- ${line}`).join("\n")}\n`, added: fresh.length }
 }
