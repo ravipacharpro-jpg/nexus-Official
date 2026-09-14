@@ -1591,11 +1591,13 @@ const layer = Layer.effect(
               sys.mcp(agent, session.permission),
               MessageV2.toModelMessagesEffect(msgs, model),
             ])
+            const standing = yield* sys.standing(agent)
             const system = [
               ...env,
               ...instructions,
               ...(mcpInstructions ? [mcpInstructions] : []),
               ...(skills ? [skills] : []),
+              ...(standing ? [standing] : []),
             ]
             yield* plugin.trigger("prompt.build", { sessionID, agent: agent.name }, { system })
             const format = lastUser.format ?? { type: "text" as const }

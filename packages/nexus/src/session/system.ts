@@ -1,5 +1,6 @@
 import { LayerNode } from "@nexus-ai/core/effect/layer-node"
 import { Context, Effect, Layer } from "effect"
+import path from "path"
 
 import { InstanceState } from "@/effect/instance-state"
 
@@ -18,6 +19,8 @@ import type { Agent } from "@/agent/agent"
 import { Permission } from "@/permission"
 import { Skill } from "@/skill"
 import { Config } from "@/config/config"
+import { FSUtil } from "@nexus-ai/core/fs-util"
+import { Global } from "@nexus-ai/core/global"
 import { AbsolutePath } from "@nexus-ai/core/schema"
 import { Location } from "@nexus-ai/core/location"
 import { LocationServiceMap, locationServiceMapLayer } from "@nexus-ai/core/location-services"
@@ -52,6 +55,7 @@ export function provider(model: Provider.Model) {
 export interface Interface {
   readonly environment: (model: Provider.Model) => Effect.Effect<string[]>
   readonly skills: (agent: Agent.Info) => Effect.Effect<string | undefined>
+  readonly standing: (agent: Agent.Info) => Effect.Effect<string | undefined>
   readonly mcp: (agent: Agent.Info, permission?: PermissionV1.Ruleset) => Effect.Effect<string | undefined>
 }
 
@@ -62,6 +66,8 @@ const layer = Layer.effect(
   Effect.gen(function* () {
     const skill = yield* Skill.Service
     const config = yield* Config.Service
+    const fsys = yield* FSUtil.Service
+    const global = yield* Global.Service
     const mcp = yield* MCP.Service
     const locations = yield* LocationServiceMap.Service
 
@@ -120,6 +126,27 @@ const layer = Layer.effect(
         ].join("\n")
       }),
 
+      standing: Effect.fn("SystemPrompt.standing")(function* (_agent: Agent.Info) {
+        const ctx = yield* InstanceState.context
+        const files = [
+          path.join(ctx.worktree, ".nexus", "standing-orders.md"),
+          path.join(global.home, ".nexus", "standing-orders.md"),
+        ]
+        const found = yield* Effect.forEach(
+          files,
+          (file) => fsys.readFileStringSafe(file).pipe(Effect.catch(() => Effect.succeed(undefined))),
+          { concurrency: 2 },
+        )
+        const orders = found.filter((text): text is string => text !== undefined && text.trim().length > 0)
+        if (orders.length === 0) return undefined
+        return [
+          "Standing orders are permanent user instructions that apply to every session until changed.",
+          "<standing_orders>",
+          ...orders.flatMap((text) => ["  <order>", ...text.trim().split("\n").map((line) => `    ${line}`), "  </order>"]),
+          "</standing_orders>",
+        ].join("\n")
+      }),
+
       mcp: Effect.fn("SystemPrompt.mcp")(function* (agent: Agent.Info, permission?: PermissionV1.Ruleset) {
         const ruleset = Permission.merge(agent.permission, permission ?? [])
         const instructions = (yield* mcp.instructions()).filter(
@@ -150,7 +177,7 @@ const locationServiceMapNode = LayerNode.make({
 export const node = LayerNode.make({
   service: Service,
   layer: layer,
-  deps: [Skill.node, MCP.node, Config.node, locationServiceMapNode],
+  deps: [Skill.node, MCP.node, Config.node, FSUtil.node, Global.node, locationServiceMapNode],
 })
 
 export * as SystemPrompt from "./system"

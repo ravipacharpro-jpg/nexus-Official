@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { LayerNode } from "@nexus-ai/core/effect/layer-node"
 import { Effect, Layer } from "effect"
+import path from "node:path"
 import type { Agent } from "../../src/agent/agent"
 import { NamedError } from "@nexus-ai/core/util/error"
 import { Skill } from "../../src/skill"
@@ -8,8 +9,12 @@ import { Permission } from "../../src/permission"
 import type { Provider } from "../../src/provider/provider"
 import { SystemPrompt } from "../../src/session/system"
 import { Config } from "../../src/config/config"
+import { FSUtil } from "@nexus-ai/core/fs-util"
+import { Global } from "@nexus-ai/core/global"
 import { MCP } from "../../src/mcp"
 import { testEffect } from "../lib/effect"
+import { provideTmpdirInstance } from "../fixture/fixture"
+import { CrossSpawnSpawner } from "@nexus-ai/core/cross-spawn-spawner"
 
 const skills: Skill.Info[] = [
   {
@@ -44,7 +49,10 @@ const build: Agent.Info = {
   options: {},
 }
 
+const node = LayerNode.compile(CrossSpawnSpawner.node)
+
 const it = testEffect(
+  Layer.mergeAll(
   LayerNode.compile(SystemPrompt.node, [
     [
       MCP.node,
@@ -87,7 +95,21 @@ const it = testEffect(
         get: () => Effect.succeed({}),
       }),
     ],
-  ]),
+    [
+      FSUtil.node,
+      Layer.mock(FSUtil.Service, {
+        readFileStringSafe: () => Effect.succeed(undefined),
+      }),
+    ],
+    [
+      Global.node,
+      Layer.mock(Global.Service, {
+        home: "/tmp/nexus-test-no-home",
+      }),
+    ],
+    ]),
+    node,
+  ),
 )
 
 describe("session.system", () => {
@@ -171,5 +193,74 @@ describe("session.system", () => {
         ].join("\n"),
       )
     }),
+  )
+
+  it.live("standing orders are undefined when no orders files exist", () =>
+    provideTmpdirInstance(() =>
+      Effect.gen(function* () {
+        const prompt = yield* SystemPrompt.Service
+        const output = yield* prompt.standing(build)
+        expect(output).toBeUndefined()
+      }),
+    ),
+  )
+})
+
+const itOrders = testEffect(
+  Layer.mergeAll(
+  LayerNode.compile(SystemPrompt.node, [
+    [
+      MCP.node,
+      Layer.mock(MCP.Service, {
+        instructions: () => Effect.succeed([]),
+      }),
+    ],
+    [
+      Skill.node,
+      Layer.succeed(
+        Skill.Service,
+        Skill.Service.of({
+          get: () => Effect.succeed(undefined),
+          require: (name) => Effect.fail(new Skill.NotFoundError({ name, available: [] })),
+          all: () => Effect.succeed([]),
+          dirs: () => Effect.succeed([]),
+          available: () => Effect.succeed([]),
+        }),
+      ),
+    ],
+    [
+      Config.node,
+      Layer.mock(Config.Service, {
+        get: () => Effect.succeed({}),
+      }),
+    ],
+    [
+      FSUtil.node,
+      Layer.mock(FSUtil.Service, {
+        readFileStringSafe: (file: string) =>
+          Effect.succeed(file.endsWith(path.join(".nexus", "standing-orders.md")) ? "Always answer in Hinglish." : undefined),
+      }),
+    ],
+    [
+      Global.node,
+      Layer.mock(Global.Service, {
+        home: "/tmp/nexus-test-no-home",
+      }),
+    ],
+    ]),
+    node,
+  ),
+)
+
+describe("session.system standing orders", () => {
+  itOrders.live("standing orders inject workspace orders into every session", () =>
+    provideTmpdirInstance(() =>
+      Effect.gen(function* () {
+        const prompt = yield* SystemPrompt.Service
+        const output = yield* prompt.standing(build)
+        expect(output).toContain("<standing_orders>")
+        expect(output).toContain("Always answer in Hinglish.")
+      }),
+    ),
   )
 })
