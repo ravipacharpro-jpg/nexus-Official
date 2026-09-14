@@ -31,6 +31,27 @@ test("keeps the local intent inspection command out of bare-task interception", 
   assert.deepEqual(routeAssistantPluginArgs(["intent", "workspace"]), ["intent", "workspace"])
 })
 
+test("routes every registered top-level command past bare-task interception", () => {
+  for (const command of [
+    "tasks",
+    "heartbeat",
+    "standing",
+    "goals",
+    "lessons",
+    "profile",
+    "doctor",
+    "onboard",
+    "memory",
+    "device",
+    "artifact",
+    "permission",
+    "instructions",
+    "translator",
+  ]) {
+    assert.equal(isBareUserTask([command]), false, `${command} must reach yargs, not the liaison`)
+  }
+})
+
 test("bare task acknowledgements expose simulated desktop High and Termux Low capacity plans", async () => {
   const root = await mkdtemp(join(tmpdir(), "nexus-quick-liaison-"))
   const previousQueuePath = process.env.NEXUS_QUEUE_PATH

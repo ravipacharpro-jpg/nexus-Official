@@ -2,11 +2,75 @@ import { EOL } from "node:os"
 import type { UserLiaison } from "@nexus/termux-core"
 
 const assistantPluginAliases = new Set([
-  "code", "codegen", "copilot", "cpanel", "deploy", "devtools", "gitpro", "integrations", "recovery", "security", "termux", "translate", "translator", "undo-ai", "voice", "webtest", "workspace",
+  "code",
+  "codegen",
+  "copilot",
+  "cpanel",
+  "deploy",
+  "devtools",
+  "gitpro",
+  "integrations",
+  "recovery",
+  "security",
+  "termux",
+  "translate",
+  "translator",
+  "undo-ai",
+  "voice",
+  "webtest",
+  "workspace",
 ])
 
 const knownCommands = new Set([
-  "acp", "agent", "api", "asset", "assistant", "attach", "bot", "completion", "config", "console", "db", "debug", "dev", "do", "export", "generate", "github", "import", "intent", "liaison", "mcp", "mod", "models", "pr", "providers", "run", "serve", "session", "setup", "stats", "tui", "uninstall", "upgrade", "web", ...assistantPluginAliases,
+  "acp",
+  "agent",
+  "api",
+  "artifact",
+  "asset",
+  "assistant",
+  "attach",
+  "bot",
+  "completion",
+  "config",
+  "console",
+  "db",
+  "debug",
+  "dev",
+  "device",
+  "do",
+  "doctor",
+  "export",
+  "generate",
+  "github",
+  "goals",
+  "heartbeat",
+  "import",
+  "instructions",
+  "intent",
+  "lessons",
+  "liaison",
+  "mcp",
+  "memory",
+  "mod",
+  "models",
+  "onboard",
+  "permission",
+  "pr",
+  "profile",
+  "providers",
+  "run",
+  "serve",
+  "session",
+  "setup",
+  "standing",
+  "stats",
+  "tasks",
+  "translator",
+  "tui",
+  "uninstall",
+  "upgrade",
+  "web",
+  ...assistantPluginAliases,
 ])
 
 /**
@@ -22,21 +86,26 @@ export function isBareUserTask(args: string[]) {
   return args.length > 0 && !args[0]?.startsWith("-") && !knownCommands.has(args[0] ?? "")
 }
 
-export async function runBareUserTask(args: string[], dependencies: {
-  liaison?: UserLiaison
-  write?: (text: string) => void
-  writeError?: (text: string) => void
-} = {}) {
+export async function runBareUserTask(
+  args: string[],
+  dependencies: {
+    liaison?: UserLiaison
+    write?: (text: string) => void
+    writeError?: (text: string) => void
+  } = {},
+) {
   const { UserLiaison } = await import("@nexus/termux-core")
   const write = dependencies.write ?? process.stdout.write.bind(process.stdout)
   const writeError = dependencies.writeError ?? process.stderr.write.bind(process.stderr)
-  const liaison = dependencies.liaison ?? new UserLiaison({
-    onUpdate(status) {
-      if (!["Complete", "Failed", "Paused", "Cancelled", "Needs review"].includes(status.status)) return
-      const detail = status.result?.summary ?? status.error ?? status.status
-      write(`NEXUS task ${status.taskId}: ${detail}${EOL}`)
-    },
-  })
+  const liaison =
+    dependencies.liaison ??
+    new UserLiaison({
+      onUpdate(status) {
+        if (!["Complete", "Failed", "Paused", "Cancelled", "Needs review"].includes(status.status)) return
+        const detail = status.result?.summary ?? status.error ?? status.status
+        write(`NEXUS task ${status.taskId}: ${detail}${EOL}`)
+      },
+    })
   try {
     const response = await liaison.handleUserMessage(args.join(" "), "local", process.cwd())
     write(response + EOL)
