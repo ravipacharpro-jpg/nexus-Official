@@ -51,6 +51,7 @@ import { WorkspaceCommand } from "./cli/cmd/workspace"
 import { TranslatorCommand } from "./cli/cmd/translator"
 import { IntentCommand } from "./cli/cmd/intent"
 import { MemoryCommand } from "./cli/cmd/memory"
+import { LessonsCommand } from "./cli/cmd/lessons"
 
 const rawArgs = hideBin(process.argv)
 const args = rawArgs
@@ -147,6 +148,7 @@ const cli = yargs(args)
   .command(TranslatorCommand)
   .command(IntentCommand)
   .command(MemoryCommand)
+  .command(LessonsCommand)
   .fail((msg, err) => {
     if (
       msg?.startsWith("Unknown argument") ||
