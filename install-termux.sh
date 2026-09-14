@@ -42,11 +42,14 @@ command -v bun >/dev/null 2>&1 || die "Bun installation failed."
 say "Downloading NEXUS source"
 mkdir -p "$INSTALL_ROOT"
 if [ -d "$SOURCE_DIR/.git" ]; then
-  git -C "$SOURCE_DIR" fetch --depth=1 origin main
-  git -C "$SOURCE_DIR" reset --hard origin/main
+  git -C "$SOURCE_DIR" fetch --depth=1 origin main \
+    || die "Could not fetch branch 'main' from $REPO_URL. Check the URL and your connection."
+  git -C "$SOURCE_DIR" reset --hard origin/main \
+    || die "Could not reset to origin/main."
 else
   rm -rf "$SOURCE_DIR"
-  git clone --depth=1 --branch main "$REPO_URL" "$SOURCE_DIR"
+  git clone --depth=1 --branch main "$REPO_URL" "$SOURCE_DIR" \
+    || die "Could not clone branch 'main' from $REPO_URL. Check the URL and your connection, or set NEXUS_REPO_URL to a repo that has a main branch."
 fi
 
 say "Installing JavaScript dependencies (this may take a few minutes)"
