@@ -55,6 +55,7 @@ import { LessonsCommand } from "./cli/cmd/lessons"
 import { TasksCommand } from "./cli/cmd/tasks"
 import { HeartbeatCommand } from "./cli/cmd/heartbeat"
 import { StandingCommand } from "./cli/cmd/standing"
+import { GoalsCommand } from "./cli/cmd/goals"
 
 const rawArgs = hideBin(process.argv)
 const args = rawArgs
@@ -155,6 +156,7 @@ const cli = yargs(args)
   .command(TasksCommand)
   .command(HeartbeatCommand)
   .command(StandingCommand)
+  .command(GoalsCommand)
   .fail((msg, err) => {
     if (
       msg?.startsWith("Unknown argument") ||
@@ -173,7 +175,10 @@ let nexusCleanupDone = false
 function nexusCleanup(): void {
   if (nexusCleanupDone) return
   nexusCleanupDone = true
-  if (process.platform === "linux" && require("fs").existsSync("/data/data/com.termux/files/usr/bin/termux-wake-unlock")) {
+  if (
+    process.platform === "linux" &&
+    require("fs").existsSync("/data/data/com.termux/files/usr/bin/termux-wake-unlock")
+  ) {
     try {
       Bun.spawnSync(["termux-wake-unlock"], { stdout: "ignore", stderr: "ignore" })
     } catch {}
