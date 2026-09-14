@@ -44,7 +44,8 @@ function pagerCmd(): string[] {
 export const SessionCommand = cmd({
   command: "session",
   describe: "manage sessions",
-  builder: (yargs: Argv) => yargs.command(SessionListCommand).command(SessionDeleteCommand).demandCommand(),
+  builder: (yargs: Argv) =>
+    yargs.command(SessionListCommand).command(SessionDeleteCommand).command(SessionInjectCommand).demandCommand(),
   async handler() {},
 })
 
@@ -64,6 +65,25 @@ export const SessionDeleteCommand = effectCmd({
       .remove(sessionID)
       .pipe(Effect.catchIf(NotFoundError.isInstance, () => fail(`Session not found: ${args.sessionID}`)))
     UI.println(UI.Style.TEXT_SUCCESS_BOLD + `Session ${args.sessionID} deleted` + UI.Style.TEXT_NORMAL)
+  }),
+})
+
+export const SessionInjectCommand = effectCmd({
+  command: "inject <sessionID> <text>",
+  describe: "admit an external wakeup message into a session (scheduler, panel)",
+  builder: (yargs) =>
+    yargs
+      .positional("sessionID", { describe: "session ID to wake", type: "string", demandOption: true })
+      .positional("text", { describe: "message text to admit", type: "string", demandOption: true })
+      .option("agent", { describe: "agent to attribute the wakeup to", type: "string" }),
+  handler: Effect.fn("Cli.session.inject")(function* (args) {
+    const { inject } = yield* Effect.promise(() => import("@/inbox"))
+    const result = yield* inject({ sessionID: args.sessionID, text: args.text, agent: args.agent }).pipe(
+      Effect.catchIf(NotFoundError.isInstance, () => fail(`Session not found: ${args.sessionID}`)),
+    )
+    UI.println(
+      UI.Style.TEXT_SUCCESS_BOLD + `Injected into ${args.sessionID} as ${result.messageID}` + UI.Style.TEXT_NORMAL,
+    )
   }),
 })
 

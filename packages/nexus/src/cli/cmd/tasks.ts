@@ -1,7 +1,9 @@
 import type { Argv } from "yargs"
+import { Effect } from "effect"
 import { Global } from "@nexus-ai/core/global"
-import { addJob, describeJob, dueJobs, loadStore, parseCron, removeJob, saveStore } from "../../scheduler"
+import { addJob, describeJob, dueJobs, loadStore, markRun, parseCron, removeJob, saveStore } from "../../scheduler"
 import { cmd } from "./cmd"
+import { effectCmd } from "../effect-cmd"
 
 function stateDir() {
   return Global.Path.state
@@ -103,7 +105,13 @@ const TasksDueCommand = cmd({
     const store = loadStore(stateDir())
     const due = dueJobs(store)
     if (args.json) {
-      console.log(JSON.stringify(due.map((item) => ({ id: item.job.id, reason: item.reason })), null, 2))
+      console.log(
+        JSON.stringify(
+          due.map((item) => ({ id: item.job.id, reason: item.reason })),
+          null,
+          2,
+        ),
+      )
       return
     }
     if (due.length === 0) {
@@ -130,7 +138,9 @@ const TasksAuditCommand = cmd({
       return
     }
     for (const row of rows) {
-      console.log(`${row.id} [${row.kind}] runs=${row.runs}${row.lastRun ? ` last=${new Date(row.lastRun).toISOString()}` : " never"}`)
+      console.log(
+        `${row.id} [${row.kind}] runs=${row.runs}${row.lastRun ? ` last=${new Date(row.lastRun).toISOString()}` : " never"}`,
+      )
     }
   },
 })
@@ -145,6 +155,42 @@ export const TasksCommand = cmd({
       .command(TasksRemoveCommand)
       .command(TasksDueCommand)
       .command(TasksAuditCommand)
+      .command(TasksRunDueCommand)
       .demandCommand(),
   handler: () => undefined,
+})
+
+const TasksRunDueCommand = effectCmd({
+  command: "run-due <session>",
+  describe: "admit due jobs into a session as wakeup messages",
+  builder: (yargs) =>
+    yargs
+      .positional("session", { describe: "session ID to wake", type: "string", demandOption: true })
+      .option("agent", { describe: "agent to attribute wakeups to", type: "string" })
+      .option("json", { type: "boolean", default: false }),
+  handler: Effect.fn("Cli.tasks.runDue")(function* (args) {
+    const { inject } = yield* Effect.promise(() => import("@/inbox"))
+    let store = loadStore(stateDir())
+    const due = dueJobs(store)
+    const admitted: string[] = []
+    for (const item of due) {
+      yield* inject({
+        sessionID: args.session,
+        text: `[scheduled ${item.job.id}] ${item.job.instructions}`,
+        agent: args.agent,
+      })
+      store = markRun(store, item.job.id)
+      admitted.push(item.job.id)
+    }
+    saveStore(store, stateDir())
+    if (args.json) {
+      console.log(JSON.stringify({ admitted }, null, 2))
+      return
+    }
+    console.log(
+      admitted.length === 0
+        ? "Nothing due."
+        : `Admitted ${admitted.length} job(s) into ${args.session}: ${admitted.join(", ")}.`,
+    )
+  }),
 })
