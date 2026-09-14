@@ -61,6 +61,15 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()("@nexus/SystemPrompt") {}
 
+// One file's standing orders stay bounded so a huge file can't bloat every
+// prompt the way skill listings could before the prompt budget.
+export const STANDING_ORDER_FILE_BUDGET_CHARS = 4000
+
+export function truncateOrders(text: string): string {
+  if (text.length <= STANDING_ORDER_FILE_BUDGET_CHARS) return text
+  return `${text.slice(0, STANDING_ORDER_FILE_BUDGET_CHARS)}\n[truncated: standing orders file exceeds budget]`
+}
+
 const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
@@ -134,10 +143,16 @@ const layer = Layer.effect(
         ]
         const found = yield* Effect.forEach(
           files,
-          (file) => fsys.readFileStringSafe(file).pipe(Effect.catch(() => Effect.succeed(undefined))),
+          (file) =>
+            fsys.readFileStringSafe(file).pipe(
+              Effect.tapError((error) => Effect.logWarning("standing orders unreadable", { file, error })),
+              Effect.catch(() => Effect.succeed(undefined)),
+            ),
           { concurrency: 2 },
         )
-        const orders = found.filter((text): text is string => text !== undefined && text.trim().length > 0)
+        const orders = found
+          .filter((text): text is string => text !== undefined && text.trim().length > 0)
+          .map((text) => truncateOrders(text.trim()))
         if (orders.length === 0) return undefined
         return [
           "Standing orders are permanent user instructions that apply to every session until changed.",

@@ -7,7 +7,7 @@ import { NamedError } from "@nexus-ai/core/util/error"
 import { Skill } from "../../src/skill"
 import { Permission } from "../../src/permission"
 import type { Provider } from "../../src/provider/provider"
-import { SystemPrompt } from "../../src/session/system"
+import { SystemPrompt, truncateOrders, STANDING_ORDER_FILE_BUDGET_CHARS } from "../../src/session/system"
 import { Config } from "../../src/config/config"
 import { FSUtil } from "@nexus-ai/core/fs-util"
 import { Global } from "@nexus-ai/core/global"
@@ -263,4 +263,14 @@ describe("session.system standing orders", () => {
       }),
     ),
   )
+})
+
+describe("standing order budget", () => {
+  test("huge files truncate with a marker instead of bloating prompts", () => {
+    const big = "x".repeat(STANDING_ORDER_FILE_BUDGET_CHARS + 100)
+    const truncated = truncateOrders(big)
+    expect(truncated.length).toBeLessThan(big.length)
+    expect(truncated).toContain("[truncated:")
+    expect(truncateOrders("short")).toBe("short")
+  })
 })
