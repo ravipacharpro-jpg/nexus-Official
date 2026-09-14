@@ -55,7 +55,14 @@ export function saveStore(store: Store, stateDirectory: string = Global.Path.sta
 }
 
 export function addJob(store: Store, job: Omit<ScheduledJob, "createdAt" | "runs">, now = Date.now()): Store {
-  return { jobs: [...store.jobs, { ...job, createdAt: now, runs: 0 }] }
+  if (job.kind === "once" && (typeof job.at !== "number" || Number.isNaN(job.at))) {
+    throw new Error("one-shot jobs need a valid `at` timestamp")
+  }
+  if (job.kind === "cron" && (typeof job.expr !== "string" || !parseCron(job.expr))) {
+    throw new Error("cron jobs need a valid 5-field `expr`")
+  }
+  // Same id replaces: scheduling is idempotent, never a silent duplicate pool.
+  return { jobs: [...store.jobs.filter((item) => item.id !== job.id), { ...job, createdAt: now, runs: 0 }] }
 }
 
 export function removeJob(store: Store, id: string): { store: Store; removed: boolean } {
@@ -74,11 +81,13 @@ export interface CronFields {
 function parseField(field: string, min: number, max: number): Set<number> | undefined {
   const values = new Set<number>()
   for (const part of field.split(",")) {
+    if (!part) return undefined
     const stepSplit = part.split("/")
     if (stepSplit.length > 2) return undefined
     const step = stepSplit.length === 2 ? Number(stepSplit[1]) : 1
     if (!Number.isInteger(step) || step < 1) return undefined
     const range = stepSplit[0]
+    if (!range) return undefined
     let from = min
     let to = max
     if (range !== "*") {

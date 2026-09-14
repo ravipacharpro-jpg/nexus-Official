@@ -39,6 +39,9 @@ describe("cron parser", () => {
     expect(parseCron("*/0 * * * *")).toBeUndefined()
     expect(parseCron("9-8 * * * *")).toBeUndefined()
     expect(parseCron("nope * * * *")).toBeUndefined()
+    expect(parseCron("0,,30 * * * *")).toBeUndefined()
+    expect(parseCron(", * * * *")).toBeUndefined()
+    expect(parseCron("/2 * * * *")).toBeUndefined()
   })
 
   test("next run is strictly after now", () => {
@@ -78,7 +81,7 @@ describe("scheduler store", () => {
   test("skips corrupt stores and removes by id", () => {
     const dir = tmpdirNew()
     expect(loadStore(dir).jobs).toEqual([])
-    const store = addJob({ jobs: [] }, { id: "a", kind: "once", instructions: "x" })
+    const store = addJob({ jobs: [] }, { id: "a", kind: "once", at: 999, instructions: "x" })
     const removed = removeJob(store, "missing")
     expect(removed.removed).toBe(false)
     expect(removeJob(store, "a").removed).toBe(true)
@@ -100,5 +103,17 @@ describe("scheduler store", () => {
   test("describe fits one line per job", () => {
     const store = addJob({ jobs: [] }, { id: "a", kind: "cron", expr: "0 9 * * *", instructions: "brief me" })
     expect(describeJob(store.jobs[0])).toContain("a [cron 0 9 * * *]")
+  })
+
+  test("addJob validates kind fields and upserts duplicate ids", () => {
+    expect(() => addJob({ jobs: [] }, { id: "x", kind: "once", instructions: "no time" })).toThrow("`at`")
+    expect(() => addJob({ jobs: [] }, { id: "x", kind: "cron", instructions: "no expr" })).toThrow("`expr`")
+    expect(() =>
+      addJob({ jobs: [] }, { id: "x", kind: "cron", expr: "bogus", instructions: "bad expr" }),
+    ).toThrow("`expr`")
+    let store = addJob({ jobs: [] }, { id: "dup", kind: "once", at: 100, instructions: "first" })
+    store = addJob(store, { id: "dup", kind: "once", at: 200, instructions: "second" })
+    expect(store.jobs).toHaveLength(1)
+    expect(store.jobs[0].instructions).toBe("second")
   })
 })
