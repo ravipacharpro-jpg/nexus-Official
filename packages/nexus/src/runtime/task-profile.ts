@@ -85,3 +85,43 @@ export async function setTaskProfile(name: TaskProfileName) {
 export function taskProfilePath() {
   return profilePath
 }
+
+export type RuntimeProfileName = "termux" | "web" | "headless"
+export type RuntimeProfile = {
+  name: RuntimeProfileName
+  description: string
+  autonomy: "full" | "task-only"
+}
+
+export const RUNTIME_PROFILES: Record<RuntimeProfileName, RuntimeProfile> = {
+  termux: {
+    name: "termux",
+    description: "Phone lite: full autonomy (scheduler, memory, hooks) with Termux senses, no heavy compute",
+    autonomy: "full",
+  },
+  web: {
+    name: "web",
+    description: "Full runtime: autonomy plus server, browser, and boost-tier capabilities",
+    autonomy: "full",
+  },
+  headless: {
+    name: "headless",
+    description: "One-shot runner: single task, no server, no ambient loops",
+    autonomy: "task-only",
+  },
+}
+
+function isRuntimeProfileName(value: string): value is RuntimeProfileName {
+  return value === "termux" || value === "web" || value === "headless"
+}
+
+// Explicit config wins; Termux self-detects; headless is opt-in only so
+// ambient loops never start by surprise. Everything else defaults to web.
+export function resolveRuntimeProfile(
+  explicit?: string,
+  env: NodeJS.ProcessEnv = process.env,
+): RuntimeProfileName {
+  if (explicit && isRuntimeProfileName(explicit)) return explicit
+  if (isTermuxRuntime(env)) return "termux"
+  return "web"
+}

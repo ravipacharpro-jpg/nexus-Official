@@ -42,6 +42,9 @@ export const Info = Schema.Struct({
     description: "Command configuration, see https://nexus.ai/docs/commands",
   }),
   skills: Schema.optional(ConfigSkillsV1.Info).annotate({ description: "Additional skill folder paths" }),
+  profile: Schema.optional(Schema.Literals(["termux", "web", "headless"])).annotate({
+    description: "Runtime profile: termux (phone lite), web (full), headless (one-shot). Auto-detected when unset.",
+  }),
   references: Schema.optional(ConfigReference.Info).annotate({
     description: "Named git or local directory references",
   }),

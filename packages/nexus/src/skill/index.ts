@@ -18,6 +18,7 @@ import { Glob } from "@nexus-ai/core/util/glob"
 import { Discovery } from "./discovery"
 import { isRecord } from "@/util/record"
 import { escapeHtml } from "@/util/html"
+import { isTermuxRuntime } from "@/runtime/task-profile"
 
 const CLAUDE_EXTERNAL_DIR = ".claude"
 const AGENTS_EXTERNAL_DIR = ".agents"
@@ -300,10 +301,6 @@ export function meetsGate(info: Info, ctx: GateContext): boolean {
   if (requires.anyBins && requires.anyBins.length > 0 && !requires.anyBins.some((bin) => want(bin))) return false
   if (requires.config && requires.config.some((key) => !configTruthy(ctx.config, key))) return false
   return true
-}
-
-function isTermuxRuntime(): boolean {
-  return process.env.TERMUX_VERSION !== undefined || (process.env.PREFIX ?? "").includes("com.termux")
 }
 
 function pathBins(): string[] {
