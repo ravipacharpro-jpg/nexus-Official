@@ -17,6 +17,7 @@ import type { Provider } from "@/provider/provider"
 import type { Agent } from "@/agent/agent"
 import { Permission } from "@/permission"
 import { Skill } from "@/skill"
+import { Config } from "@/config/config"
 import { AbsolutePath } from "@nexus-ai/core/schema"
 import { Location } from "@nexus-ai/core/location"
 import { LocationServiceMap, locationServiceMapLayer } from "@nexus-ai/core/location-services"
@@ -60,6 +61,7 @@ const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const skill = yield* Skill.Service
+    const config = yield* Config.Service
     const mcp = yield* MCP.Service
     const locations = yield* LocationServiceMap.Service
 
@@ -107,13 +109,14 @@ const layer = Layer.effect(
         if (Permission.disabled(["skill"], agent.permission).has("skill")) return
 
         const list = yield* skill.available(agent)
+        const budget = (yield* config.get()).skills?.maxPromptChars
 
         return [
           "Skills provide specialized instructions and workflows for specific tasks.",
           "Use the skill tool to load a skill when a task matches its description.",
           // the agents seem to ingest the information about skills a bit better if we present a more verbose
           // version of them here and a less verbose version in tool description, rather than vice versa.
-          Skill.fmt(list, { verbose: true }),
+          Skill.fmt(list, { verbose: true, maxChars: budget }),
         ].join("\n")
       }),
 
@@ -147,7 +150,7 @@ const locationServiceMapNode = LayerNode.make({
 export const node = LayerNode.make({
   service: Service,
   layer: layer,
-  deps: [Skill.node, MCP.node, locationServiceMapNode],
+  deps: [Skill.node, MCP.node, Config.node, locationServiceMapNode],
 })
 
 export * as SystemPrompt from "./system"

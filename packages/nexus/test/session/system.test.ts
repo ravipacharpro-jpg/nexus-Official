@@ -7,6 +7,7 @@ import { Skill } from "../../src/skill"
 import { Permission } from "../../src/permission"
 import type { Provider } from "../../src/provider/provider"
 import { SystemPrompt } from "../../src/session/system"
+import { Config } from "../../src/config/config"
 import { MCP } from "../../src/mcp"
 import { testEffect } from "../lib/effect"
 
@@ -79,6 +80,12 @@ const it = testEffect(
           available: () => Effect.succeed(skills),
         }),
       ),
+    ],
+    [
+      Config.node,
+      Layer.mock(Config.Service, {
+        get: () => Effect.succeed({}),
+      }),
     ],
   ]),
 )

@@ -1,5 +1,6 @@
 import { LayerNode } from "@nexus-ai/core/effect/layer-node"
 import path from "path"
+import { readdirSync } from "node:fs"
 import { Effect, Layer, Context, Schema } from "effect"
 import { NamedError } from "@nexus-ai/core/util/error"
 import type { Agent } from "@/agent/agent"
@@ -39,6 +40,15 @@ export const Info = Schema.Struct({
   description: Schema.optional(Schema.String),
   location: Schema.String,
   content: Schema.String,
+  requires: Schema.optional(
+    Schema.Struct({
+      bins: Schema.optional(Schema.Array(Schema.String)),
+      anyBins: Schema.optional(Schema.Array(Schema.String)),
+      env: Schema.optional(Schema.Array(Schema.String)),
+      config: Schema.optional(Schema.Array(Schema.String)),
+    }),
+  ),
+  os: Schema.optional(Schema.Array(Schema.String)),
 })
 export type Info = Schema.Schema.Type<typeof Info>
 
@@ -50,12 +60,23 @@ const Issue = Schema.StructWithRest(
   [Schema.Record(Schema.String, Schema.Unknown)],
 )
 
-function isSkillFrontmatter(data: unknown): data is { name: string; description?: string } {
-  return (
-    isRecord(data) &&
-    typeof data.name === "string" &&
-    (data.description === undefined || typeof data.description === "string")
-  )
+function isStringArray(data: unknown): data is string[] {
+  return Array.isArray(data) && data.every((item) => typeof item === "string")
+}
+
+function isSkillFrontmatter(
+  data: unknown,
+): data is { name: string; description?: string; requires?: Info["requires"]; os?: string[] } {
+  if (!isRecord(data) || typeof data.name !== "string") return false
+  if (data.description !== undefined && typeof data.description !== "string") return false
+  if (data.os !== undefined && !isStringArray(data.os)) return false
+  if (data.requires !== undefined) {
+    if (!isRecord(data.requires)) return false
+    for (const key of ["bins", "anyBins", "env", "config"]) {
+      if (data.requires[key] !== undefined && !isStringArray(data.requires[key])) return false
+    }
+  }
+  return true
 }
 
 export class InvalidError extends Schema.TaggedErrorClass<InvalidError>()("SkillInvalidError", {
@@ -82,6 +103,7 @@ export class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()("Ski
 type State = {
   skills: Record<string, Info>
   dirs: Set<string>
+  binCache?: { at: number; bins: string[] }
 }
 
 type DiscoveryState = {
@@ -136,6 +158,8 @@ const add = Effect.fnUntraced(function* (state: State, match: string, events: Ev
     description: md.data.description,
     location: match,
     content: md.content,
+    ...(md.data.requires ? { requires: md.data.requires } : {}),
+    ...(md.data.os ? { os: md.data.os.map((os) => os.toLowerCase()) } : {}),
   }
 })
 
@@ -247,6 +271,60 @@ const loadSkills = Effect.fnUntraced(function* (
 
 export class Service extends Context.Service<Service, Interface>()("@nexus/Skill") {}
 
+export interface GateContext {
+  env: Record<string, string | undefined>
+  bins: string[]
+  config: unknown
+  platform: string
+  isTermux: boolean
+}
+
+function configTruthy(root: unknown, dotted: string): boolean {
+  const value = dotted
+    .split(".")
+    .reduce<unknown>((node, part) => (isRecord(node) ? node[part] : undefined), root)
+  return Boolean(value)
+}
+
+// Load-time eligibility: a skill with `requires`/`os` frontmatter only shows
+// up when its environment is present. Keeps PC-only and Termux-only skills
+// out of each other's prompts, and saves context on every turn.
+export function meetsGate(info: Info, ctx: GateContext): boolean {
+  if (info.os && !info.os.some((os) => os === ctx.platform || (os === "termux" && ctx.isTermux))) return false
+  const requires = info.requires
+  if (!requires) return true
+  const bins = ctx.platform === "win32" ? ctx.bins.map((bin) => bin.toLowerCase()) : ctx.bins
+  const want = (bin: string) => bins.includes(ctx.platform === "win32" ? bin.toLowerCase() : bin)
+  if (requires.env && requires.env.some((key) => !ctx.env[key])) return false
+  if (requires.bins && requires.bins.some((bin) => !want(bin))) return false
+  if (requires.anyBins && requires.anyBins.length > 0 && !requires.anyBins.some((bin) => want(bin))) return false
+  if (requires.config && requires.config.some((key) => !configTruthy(ctx.config, key))) return false
+  return true
+}
+
+function isTermuxRuntime(): boolean {
+  return process.env.TERMUX_VERSION !== undefined || (process.env.PREFIX ?? "").includes("com.termux")
+}
+
+function pathBins(): string[] {
+  const found = new Set<string>()
+  for (const dir of (process.env.PATH ?? "").split(path.delimiter)) {
+    if (!dir) continue
+    let entries: string[]
+    try {
+      entries = readdirSync(dir)
+    } catch {
+      continue
+    }
+    for (const entry of entries) {
+      found.add(
+        process.platform === "win32" ? entry.toLowerCase().replace(/\.(exe|cmd|bat|com)$/, "") : entry,
+      )
+    }
+  }
+  return [...found]
+}
+
 const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
@@ -309,7 +387,21 @@ const layer = Layer.effect(
 
     const available = Effect.fn("Skill.available")(function* (agent?: Agent.Info) {
       const s = yield* InstanceState.get(state)
-      const list = Object.values(s.skills).toSorted((a, b) => a.name.localeCompare(b.name))
+      const now = Date.now()
+      if (!s.binCache || now - s.binCache.at > 60_000) {
+        s.binCache = { at: now, bins: pathBins() }
+      }
+      const cfg: unknown = yield* config.get()
+      const gate: GateContext = {
+        env: process.env,
+        bins: s.binCache.bins,
+        config: cfg,
+        platform: process.platform,
+        isTermux: isTermuxRuntime(),
+      }
+      const list = Object.values(s.skills)
+        .toSorted((a, b) => a.name.localeCompare(b.name))
+        .filter((skill) => meetsGate(skill, gate))
       if (!agent) return list
       return list.filter((skill) => Permission.evaluate("skill", skill.name, agent.permission).action !== "deny")
     })
@@ -318,31 +410,56 @@ const layer = Layer.effect(
   }),
 )
 
-export function fmt(list: Info[], opts: { verbose: boolean }) {
+// Default prompt budget for skill listings. Lists longer than this render
+// compact (identities only) so skills cost a bounded number of tokens.
+export const SKILL_PROMPT_BUDGET_CHARS = 4000
+
+export function fmt(list: Info[], opts: { verbose: boolean; maxChars?: number }) {
   const described = list.filter((skill) => skill.description !== undefined)
   if (described.length === 0) return "No skills are currently available."
-  if (opts.verbose) {
-    return [
-      "<available_skills>",
-      ...described
-        .toSorted((a, b) => a.name.localeCompare(b.name))
-        .flatMap((skill) => [
-          "  <skill>",
-          `    <name>${skill.name}</name>`,
-          `    <description>${skill.description}</description>`,
-          `    <location>${escapeHtml(skill.location)}</location>`,
-          "  </skill>",
-        ]),
-      "</available_skills>",
-    ].join("\n")
-  }
-
-  return [
-    "## Available Skills",
-    ...described
-      .toSorted((a, b) => a.name.localeCompare(b.name))
-      .map((skill) => `- **${skill.name}**: ${skill.description}`),
-  ].join("\n")
+  const full = opts.verbose
+    ? [
+        "<available_skills>",
+        ...described
+          .toSorted((a, b) => a.name.localeCompare(b.name))
+          .flatMap((skill) => [
+            "  <skill>",
+            `    <name>${skill.name}</name>`,
+            `    <description>${skill.description}</description>`,
+            `    <location>${escapeHtml(skill.location)}</location>`,
+            "  </skill>",
+          ]),
+        "</available_skills>",
+      ].join("\n")
+    : [
+        "## Available Skills",
+        ...described
+          .toSorted((a, b) => a.name.localeCompare(b.name))
+          .map((skill) => `- **${skill.name}**: ${skill.description}`),
+      ].join("\n")
+  if (full.length <= (opts.maxChars ?? SKILL_PROMPT_BUDGET_CHARS)) return full
+  const compact = opts.verbose
+    ? [
+        "<available_skills>",
+        ...list
+          .toSorted((a, b) => a.name.localeCompare(b.name))
+          .flatMap((skill) => [
+            "  <skill>",
+            `    <name>${skill.name}</name>`,
+            `    <location>${escapeHtml(skill.location)}</location>`,
+            "  </skill>",
+          ]),
+        "</available_skills>",
+      ].join("\n")
+    : [
+        "## Available Skills",
+        ...list
+          .toSorted((a, b) => a.name.localeCompare(b.name))
+          .map((skill) => `- **${skill.name}** (\`${skill.location}\`)`),
+        "",
+        "Descriptions omitted to fit the prompt budget. Use the skill tool to load a skill by name.",
+      ].join("\n")
+  return compact
 }
 
 export const node = LayerNode.make({

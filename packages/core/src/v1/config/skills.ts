@@ -9,5 +9,8 @@ export const Info = Schema.Struct({
   urls: Schema.optional(Schema.Array(Schema.String)).annotate({
     description: "URLs to fetch skills from (e.g., https://example.com/.well-known/skills/)",
   }),
+  maxPromptChars: Schema.optional(Schema.Number).annotate({
+    description: "Prompt budget for skill listings; longer lists render compact without descriptions",
+  }),
 })
 export type Info = Schema.Schema.Type<typeof Info>
