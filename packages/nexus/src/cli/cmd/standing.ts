@@ -28,7 +28,11 @@ const StandingSuggestCommand = cmd({
   builder: (yargs: Argv) =>
     yargs
       .option("json", { type: "boolean", default: false })
-      .option("apply", { type: "boolean", default: false, describe: "append suggestions to this project's standing orders" }),
+      .option("apply", {
+        type: "boolean",
+        default: false,
+        describe: "append suggestions to this project's standing orders",
+      }),
   handler: async (args: { json?: boolean; apply?: boolean }) => {
     const lines = suggestLines(denyRules(configPermission()))
     if (args.apply) {
@@ -74,11 +78,19 @@ const StandingListCommand = cmd({
     ]
     const found = files.filter((file) => existsSync(file))
     if (args.json) {
-      console.log(JSON.stringify(found.map((file) => ({ file, content: readFileSync(file, "utf8") })), null, 2))
+      console.log(
+        JSON.stringify(
+          found.map((file) => ({ file, content: readFileSync(file, "utf8") })),
+          null,
+          2,
+        ),
+      )
       return
     }
     if (found.length === 0) {
-      console.log("No standing orders files. Create .nexus/standing-orders.md in a project to set permanent instructions.")
+      console.log(
+        "No standing orders files. Create .nexus/standing-orders.md in a project to set permanent instructions.",
+      )
       return
     }
     for (const file of found) console.log(`--- ${file} ---\n${readFileSync(file, "utf8")}`)

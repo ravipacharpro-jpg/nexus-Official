@@ -7,9 +7,7 @@ import { readIncidentFiles } from "../../lessons"
 import { cmd } from "./cmd"
 
 async function termuxApi() {
-  return Effect.runPromise(
-    Effect.promise(() => import("@nexus/termux-api")).pipe(Effect.map((mod) => mod.TermuxAPI)),
-  )
+  return Effect.runPromise(Effect.promise(() => import("@nexus/termux-api")).pipe(Effect.map((mod) => mod.TermuxAPI)))
 }
 
 async function batteryPercent(): Promise<number> {
@@ -73,7 +71,9 @@ export const HeartbeatCommand = cmd({
       return
     }
     if (args.json) {
-      console.log(JSON.stringify({ ...decision, announced: false, due: due.map((item) => item.job.id), message }, null, 2))
+      console.log(
+        JSON.stringify({ ...decision, announced: false, due: due.map((item) => item.job.id), message }, null, 2),
+      )
       return
     }
     console.log(decision.run ? `Silent turn: ${decision.reason}.` : decision.reason)
