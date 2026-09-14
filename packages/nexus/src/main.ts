@@ -52,6 +52,8 @@ import { TranslatorCommand } from "./cli/cmd/translator"
 import { IntentCommand } from "./cli/cmd/intent"
 import { MemoryCommand } from "./cli/cmd/memory"
 import { LessonsCommand } from "./cli/cmd/lessons"
+import { TasksCommand } from "./cli/cmd/tasks"
+import { HeartbeatCommand } from "./cli/cmd/heartbeat"
 
 const rawArgs = hideBin(process.argv)
 const args = rawArgs
@@ -149,6 +151,8 @@ const cli = yargs(args)
   .command(IntentCommand)
   .command(MemoryCommand)
   .command(LessonsCommand)
+  .command(TasksCommand)
+  .command(HeartbeatCommand)
   .fail((msg, err) => {
     if (
       msg?.startsWith("Unknown argument") ||
