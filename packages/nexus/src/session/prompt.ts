@@ -1597,6 +1597,7 @@ const layer = Layer.effect(
               ...(mcpInstructions ? [mcpInstructions] : []),
               ...(skills ? [skills] : []),
             ]
+            yield* plugin.trigger("prompt.build", { sessionID, agent: agent.name }, { system })
             const format = lastUser.format ?? { type: "text" as const }
             if (format.type === "json_schema") system.push(STRUCTURED_OUTPUT_SYSTEM_PROMPT)
             const result = yield* handle.process({

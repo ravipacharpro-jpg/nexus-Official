@@ -332,4 +332,23 @@ export interface Hooks {
    * Modify tool definitions (description and parameters) sent to LLM
    */
   "tool.definition"?: (input: { toolID: string }, output: { description: string; parameters: any }) => Promise<void>
+  /**
+   * Policy gate for tool calls. Runs before `tool.execute.before`.
+   * Mutate `output.decision` to allow, deny, or force an approval prompt,
+   * and `output.args` to sanitize arguments. Defaults to allow.
+   * Registry tools execute with rewritten args; resource tools enforce the
+   * decision and parse args independently downstream.
+   */
+  "tool.policy"?: (
+    input: { tool: string; sessionID: string; callID: string; args: any },
+    output: { decision: "allow" | "deny" | "ask"; reason?: string; args: any },
+  ) => Promise<void>
+  /**
+   * Stable prompt assembly hook for session turns. Mutate `output.system`
+   * to inject panel or plugin context into the system prompt.
+   */
+  "prompt.build"?: (
+    input: { sessionID: string; agent: string },
+    output: { system: string[] },
+  ) => Promise<void>
 }

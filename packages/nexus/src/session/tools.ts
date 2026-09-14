@@ -39,6 +39,25 @@ const SUPPORTED_MCP_RESOURCE_ATTACHMENT_MIMES = new Set([
   "image/webp",
 ])
 
+export interface Policy {
+  decision: "allow" | "deny" | "ask"
+  reason?: string
+  args: Record<string, unknown>
+}
+
+// Applies a `tool.policy` hook outcome. Shared by every tool execution path:
+// deny fails the call with the policy reason, ask raises one approval prompt
+// scoped to the tool, allow proceeds (possibly with rewritten args).
+export function applyPolicy(policy: Policy, ask: () => Effect.Effect<void, unknown>) {
+  return Effect.gen(function* () {
+    if (policy.decision === "deny") {
+      return yield* Effect.fail(new Error(policy.reason ?? "Tool call blocked by policy"))
+    }
+    if (policy.decision === "ask") yield* ask()
+    return policy.args
+  })
+}
+
 export const resolve = Effect.fn("SessionTools.resolve")(function* (input: {
   agent: Agent.Info
   model: Provider.Model
@@ -107,12 +126,20 @@ export const resolve = Effect.fn("SessionTools.resolve")(function* (input: {
         return run.promise(
           Effect.gen(function* () {
             const ctx = context(args, options)
+            const policy = yield* plugin.trigger(
+              "tool.policy",
+              { tool: item.id, sessionID: ctx.sessionID, callID: ctx.callID, args },
+              { decision: "allow" as const, args },
+            )
+            const effectiveArgs = yield* applyPolicy(policy, () =>
+              ctx.ask({ permission: item.id, metadata: {}, patterns: [item.id], always: [item.id] }),
+            )
             yield* plugin.trigger(
               "tool.execute.before",
               { tool: item.id, sessionID: ctx.sessionID, callID: ctx.callID },
-              { args },
+              { args: effectiveArgs },
             )
-            const result = yield* item.execute(args, ctx)
+            const result = yield* item.execute(effectiveArgs, ctx)
             const output = {
               ...result,
               attachments: result.attachments?.map((attachment) => ({
@@ -180,6 +207,26 @@ export const resolve = Effect.fn("SessionTools.resolve")(function* (input: {
               "tool.execute.before",
               { tool: MCP_RESOURCE_TOOLS.list, sessionID: ctx.sessionID, callID: opts.toolCallId },
               { args },
+            )
+            // Resource tools enforce the policy decision; args are parsed and
+            // validated independently downstream.
+            const listPolicy = yield* plugin.trigger(
+              "tool.policy",
+              {
+                tool: MCP_RESOURCE_TOOLS.list,
+                sessionID: ctx.sessionID,
+                callID: opts.toolCallId,
+                args: toRecord(args),
+              },
+              { decision: "allow" as const, args: toRecord(args) },
+            )
+            yield* applyPolicy(listPolicy, () =>
+              ctx.ask({
+                permission: MCP_RESOURCE_TOOLS.list,
+                metadata: {},
+                patterns: [MCP_RESOURCE_TOOLS.list],
+                always: [MCP_RESOURCE_TOOLS.list],
+              }),
             )
             yield* ctx.ask({
               permission: "read",
@@ -264,6 +311,26 @@ export const resolve = Effect.fn("SessionTools.resolve")(function* (input: {
               { tool: MCP_RESOURCE_TOOLS.listTemplates, sessionID: ctx.sessionID, callID: opts.toolCallId },
               { args },
             )
+            // Resource tools enforce the policy decision; args are parsed and
+            // validated independently downstream.
+            const templatesPolicy = yield* plugin.trigger(
+              "tool.policy",
+              {
+                tool: MCP_RESOURCE_TOOLS.listTemplates,
+                sessionID: ctx.sessionID,
+                callID: opts.toolCallId,
+                args: toRecord(args),
+              },
+              { decision: "allow" as const, args: toRecord(args) },
+            )
+            yield* applyPolicy(templatesPolicy, () =>
+              ctx.ask({
+                permission: MCP_RESOURCE_TOOLS.listTemplates,
+                metadata: {},
+                patterns: [MCP_RESOURCE_TOOLS.listTemplates],
+                always: [MCP_RESOURCE_TOOLS.listTemplates],
+              }),
+            )
             yield* ctx.ask({
               permission: "read",
               metadata: parsed.server ? { server: parsed.server } : {},
@@ -344,6 +411,26 @@ export const resolve = Effect.fn("SessionTools.resolve")(function* (input: {
               { tool: MCP_RESOURCE_TOOLS.read, sessionID: ctx.sessionID, callID: opts.toolCallId },
               { args },
             )
+            // Resource tools enforce the policy decision; args are parsed and
+            // validated independently downstream.
+            const readPolicy = yield* plugin.trigger(
+              "tool.policy",
+              {
+                tool: MCP_RESOURCE_TOOLS.read,
+                sessionID: ctx.sessionID,
+                callID: opts.toolCallId,
+                args: toRecord(args),
+              },
+              { decision: "allow" as const, args: toRecord(args) },
+            )
+            yield* applyPolicy(readPolicy, () =>
+              ctx.ask({
+                permission: MCP_RESOURCE_TOOLS.read,
+                metadata: {},
+                patterns: [MCP_RESOURCE_TOOLS.read],
+                always: [MCP_RESOURCE_TOOLS.read],
+              }),
+            )
             yield* ctx.ask({
               permission: "read",
               metadata: { server: parsed.server, uri: parsed.uri },
@@ -403,14 +490,22 @@ export const resolve = Effect.fn("SessionTools.resolve")(function* (input: {
       run.promise(
         Effect.gen(function* () {
           const ctx = context(args, opts)
+          const policy = yield* plugin.trigger(
+            "tool.policy",
+            { tool: key, sessionID: ctx.sessionID, callID: opts.toolCallId, args },
+            { decision: "allow" as const, args },
+          )
+          const effectiveArgs = yield* applyPolicy(policy, () =>
+            ctx.ask({ permission: key, metadata: {}, patterns: [key], always: [key] }),
+          )
           yield* plugin.trigger(
             "tool.execute.before",
             { tool: key, sessionID: ctx.sessionID, callID: opts.toolCallId },
-            { args },
+            { args: effectiveArgs },
           )
           const result: Awaited<ReturnType<NonNullable<typeof execute>>> = yield* Effect.gen(function* () {
             yield* ctx.ask({ permission: key, metadata: {}, patterns: ["*"], always: ["*"] })
-            return yield* Effect.promise(() => execute(args, opts))
+            return yield* Effect.promise(() => execute(effectiveArgs, opts))
           }).pipe(
             Effect.withSpan("Tool.execute", {
               attributes: {
