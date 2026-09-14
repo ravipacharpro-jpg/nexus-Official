@@ -50,13 +50,14 @@ describe("provider key UI data", () => {
     expect(JSON.stringify(rows)).not.toContain(raw)
   })
 
-  test("removes managed UI keys without deleting CLI keys", () => {
+  test("single-key policy: adding a UI key replaces the CLI key, managed remove empties the provider", () => {
     addApiKey("openrouter", "cli-key", "cli", "cli")
     addApiKey("openrouter", "ui-key", "ui", "ui")
 
+    expect(loadApiVault().providers.openrouter.map((entry) => entry.key)).toEqual(["ui-key"])
     expect(removeManagedApiKey("openrouter", "ui-key")).toBe(true)
     expect(removeManagedApiKey("openrouter", "cli-key")).toBe(false)
-    expect(loadApiVault().providers.openrouter.map((entry) => entry.key)).toEqual(["cli-key"])
+    expect(loadApiVault().providers.openrouter).toBeUndefined()
   })
 })
 
@@ -146,15 +147,14 @@ describe("setup validation model candidates", () => {
 })
 
 describe("vault-aware key rotation", () => {
-  test("skips a rate-limited key while another healthy key exists, then allows it as the last key", () => {
+  test("single-key policy: exhausted single key yields nothing until user switches it manually", () => {
     addApiKey("groq", "key-one")
     addApiKey("groq", "key-two")
-    updateApiKeyStatus("groq", "key-one", "rate_limited")
-
-    const rotation = new RotationEngine({ groq: ["key-one", "key-two"] })
-    expect(rotation.next("groq")).toBe("key-two")
-
+    // Only the latest key is kept; there is no second key to rotate to.
+    expect(loadApiVault().providers.groq.map((entry) => entry.key)).toEqual(["key-two"])
     updateApiKeyStatus("groq", "key-two", "rate_limited")
+
+    const rotation = new RotationEngine({ groq: ["key-two"] })
     expect(rotation.next("groq")).toBeUndefined()
 
     const vault = loadApiVault()
@@ -162,7 +162,7 @@ describe("vault-aware key rotation", () => {
       entry.cooldownUntil = new Date(Date.now() - 1000).toISOString()
     }
     saveApiVault(vault)
-    expect(rotation.next("groq")).toBe("key-one")
+    expect(rotation.next("groq")).toBe("key-two")
   })
 
   test("always skips invalid keys", () => {

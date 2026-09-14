@@ -30,31 +30,34 @@ afterEach(() => {
 })
 
 describe("API Vault Fast Route health evidence", () => {
-  test("temporarily excludes a rate-limited key and rotates to another healthy key", () => {
+  test("single-key policy: adding a key replaces the previous one, exhausted key signals manual switch", () => {
     useTemporaryHome()
     const first = "test-groq-key-one"
     const second = "test-groq-key-two"
     addApiKey("groq", first, "first")
     addApiKey("groq", second, "second")
 
-    updateApiKeyStatus("groq", first, "rate_limited")
-
+    // One model = one API: only the latest key is kept, no rotation pool.
     expect(availableApiKeys("groq").map((entry) => entry.key)).toEqual([second])
-    expect(new RotationEngine({ groq: [first, second] }).next("groq")).toBe(second)
+
+    updateApiKeyStatus("groq", second, "rate_limited")
+
+    // No healthy key left: engine yields nothing, user switches manually.
+    expect(new RotationEngine({ groq: [second] }).next("groq")).toBeUndefined()
 
     const row = apiVaultPublicRows().find((item) => item.provider === "groq")?.keys[0]
     expect(row?.lastFailure).toBe("rate_limited")
     expect(row?.cooldownUntil).toBeDefined()
   })
 
-  test("accepts many keys for the same provider without an application cap", () => {
+  test("keeps a single key per provider instead of an application-capped list", () => {
     useTemporaryHome()
     for (let index = 0; index < 25; index++) {
       addApiKey("groq", `test-groq-key-${index}`, `key-${index}`)
     }
 
-    expect(availableApiKeys("groq")).toHaveLength(25)
-    expect(apiVaultPublicRows().find((item) => item.provider === "groq")?.keys).toHaveLength(25)
+    expect(availableApiKeys("groq").map((entry) => entry.key)).toEqual(["test-groq-key-24"])
+    expect(apiVaultPublicRows().find((item) => item.provider === "groq")?.keys).toHaveLength(1)
   })
 
   test("keeps only rounded latency evidence in public vault rows", () => {
