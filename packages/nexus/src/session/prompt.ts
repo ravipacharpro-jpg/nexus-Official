@@ -1592,12 +1592,14 @@ const layer = Layer.effect(
               MessageV2.toModelMessagesEffect(msgs, model),
             ])
             const standing = yield* sys.standing(agent)
+            const memory = yield* sys.memory(agent)
             const system = [
               ...env,
               ...instructions,
               ...(mcpInstructions ? [mcpInstructions] : []),
               ...(skills ? [skills] : []),
               ...(standing ? [standing] : []),
+              ...(memory ? [memory] : []),
             ]
             yield* plugin.trigger("prompt.build", { sessionID, agent: agent.name }, { system })
             const format = lastUser.format ?? { type: "text" as const }

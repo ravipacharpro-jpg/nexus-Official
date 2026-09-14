@@ -21,6 +21,7 @@ import { Skill } from "@/skill"
 import { Config } from "@/config/config"
 import { FSUtil } from "@nexus-ai/core/fs-util"
 import { Global } from "@nexus-ai/core/global"
+import { listLocalMemories } from "@/cli/cmd/memory"
 import { AbsolutePath } from "@nexus-ai/core/schema"
 import { Location } from "@nexus-ai/core/location"
 import { LocationServiceMap, locationServiceMapLayer } from "@nexus-ai/core/location-services"
@@ -56,6 +57,7 @@ export interface Interface {
   readonly environment: (model: Provider.Model) => Effect.Effect<string[]>
   readonly skills: (agent: Agent.Info) => Effect.Effect<string | undefined>
   readonly standing: (agent: Agent.Info) => Effect.Effect<string | undefined>
+  readonly memory: (agent: Agent.Info, stateDirectory?: string) => Effect.Effect<string | undefined>
   readonly mcp: (agent: Agent.Info, permission?: PermissionV1.Ruleset) => Effect.Effect<string | undefined>
 }
 
@@ -157,11 +159,33 @@ const layer = Layer.effect(
         return [
           "Standing orders are permanent user instructions that apply to every session until changed.",
           "<standing_orders>",
-          ...orders.flatMap((text) => ["  <order>", ...text.trim().split("\n").map((line) => `    ${line}`), "  </order>"]),
+          ...orders.flatMap((text) => [
+            "  <order>",
+            ...text
+              .trim()
+              .split("\n")
+              .map((line) => `    ${line}`),
+            "  </order>",
+          ]),
           "</standing_orders>",
         ].join("\n")
       }),
 
+      memory: Effect.fn("SystemPrompt.memory")(function* (_agent: Agent.Info, stateDirectory?: string) {
+        const entries = listLocalMemories({ limit: 5, ...(stateDirectory ? { stateDirectory } : {}) })
+        if (entries.length === 0) return undefined
+        return [
+          "Long-term memories persist across sessions. Prefer them over asking again; use the memory tool to store new durable facts.",
+          "<memories>",
+          ...entries.flatMap((entry) => [
+            "  <memory>",
+            `    <title>${entry.title}</title>`,
+            `    <fact>${entry.value.slice(0, 200)}</fact>`,
+            "  </memory>",
+          ]),
+          "</memories>",
+        ].join("\n")
+      }),
       mcp: Effect.fn("SystemPrompt.mcp")(function* (agent: Agent.Info, permission?: PermissionV1.Ruleset) {
         const ruleset = Permission.merge(agent.permission, permission ?? [])
         const instructions = (yield* mcp.instructions()).filter(

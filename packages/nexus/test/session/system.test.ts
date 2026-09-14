@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test"
 import { LayerNode } from "@nexus-ai/core/effect/layer-node"
 import { Effect, Layer } from "effect"
+import { mkdtempSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
 import path from "node:path"
+import { addLocalMemory } from "../../src/cli/cmd/memory"
 import type { Agent } from "../../src/agent/agent"
 import { NamedError } from "@nexus-ai/core/util/error"
 import { Skill } from "../../src/skill"
@@ -273,4 +276,30 @@ describe("standing order budget", () => {
     expect(truncated).toContain("[truncated:")
     expect(truncateOrders("short")).toBe("short")
   })
+})
+
+describe("session.system memory", () => {
+  it.effect("memory block is undefined without stored memories", () =>
+    Effect.gen(function* () {
+      const prompt = yield* SystemPrompt.Service
+      const output = yield* prompt.memory(build, "/tmp/nexus-test-no-memories-here")
+      expect(output).toBeUndefined()
+    }),
+  )
+
+  it.effect("memory block surfaces stored facts", () =>
+    Effect.gen(function* () {
+      const dir = mkdtempSync(path.join(tmpdir(), "nexus-memory-"))
+      try {
+        addLocalMemory({ title: "coffee shop", value: "User loves cold brew", stateDirectory: dir })
+        const prompt = yield* SystemPrompt.Service
+        const output = yield* prompt.memory(build, dir)
+        expect(output).toContain("<memories>")
+        expect(output).toContain("coffee shop")
+        expect(output).toContain("cold brew")
+      } finally {
+        rmSync(dir, { recursive: true, force: true })
+      }
+    }),
+  )
 })

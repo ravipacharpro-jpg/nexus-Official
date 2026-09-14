@@ -1,0 +1,1 @@
+Long-term memory across sessions. Use `remember` to persist durable facts the user stated (people, preferences, projects, decisions) and `recall` to search them later. Never store secrets, passwords, OTPs, tokens, or credentials: the store refuses sensitive values. Memory complements the session transcript: transcript holds what happened, memory holds what remains true.
