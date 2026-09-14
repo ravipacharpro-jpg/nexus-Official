@@ -27,6 +27,11 @@ describe("attention kernel", () => {
     expect(importanceOf({ severity: "info", source: "x", text: "all good" })).toBe("routine")
   })
 
+  test("severity leads trivia hints", () => {
+    expect(importanceOf({ severity: "error", source: "worker", text: "tip of the day broke" })).toBe("important")
+    expect(importanceOf({ severity: "info", source: "heartbeat", text: "nothing pending" })).toBe("routine")
+  })
+
   test("quiet hours wrap midnight", () => {
     expect(isQuietHour(new Date(2026, 8, 14, 23, 30), { startHour: 22, endHour: 7 })).toBe(true)
     expect(isQuietHour(new Date(2026, 8, 14, 6, 59), { startHour: 22, endHour: 7 })).toBe(true)
@@ -40,6 +45,7 @@ describe("attention kernel", () => {
     expect(budgetAllows([1000, 2000], 3000, 3, hour)).toBe(true)
     expect(budgetAllows([1000, 2000, 2500], 3000, 3, hour)).toBe(false)
     expect(budgetAllows([1000 - hour, 2000 - hour], 3000, 2, hour)).toBe(true)
+    expect(budgetAllows([9000, 2000], 3000, 2, hour)).toBe(true)
   })
 
   test("critical interrupts, trivia never speaks", () => {

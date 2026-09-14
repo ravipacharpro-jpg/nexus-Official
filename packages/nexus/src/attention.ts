@@ -21,8 +21,8 @@ const TRIVIA_HINTS = ["heartbeat", "tip of the day", "did you know", "survey", "
 export function importanceOf(signal: Signal): Importance {
   const text = signal.text.toLowerCase()
   if (signal.severity === "critical" || CRITICAL_HINTS.some((hint) => text.includes(hint))) return "critical"
-  if (TRIVIA_HINTS.some((hint) => text.includes(hint))) return "trivia"
   if (signal.severity === "error" || IMPORTANT_HINTS.some((hint) => text.includes(hint))) return "important"
+  if (TRIVIA_HINTS.some((hint) => text.includes(hint))) return "trivia"
   return "routine"
 }
 
@@ -40,8 +40,9 @@ export function isQuietHour(now: Date, hours: QuietHours): boolean {
 }
 
 // Rolling interruption budget: at most `max` alerts in the past `windowMs`.
+// Future timestamps (clock skew) never consume budget.
 export function budgetAllows(alertsAt: number[], now: number, max: number, windowMs: number): boolean {
-  return alertsAt.filter((at) => now - at < windowMs).length < max
+  return alertsAt.filter((at) => at <= now && now - at < windowMs).length < max
 }
 
 export interface AttentionInput {
