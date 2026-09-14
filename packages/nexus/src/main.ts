@@ -54,6 +54,7 @@ import { MemoryCommand } from "./cli/cmd/memory"
 import { LessonsCommand } from "./cli/cmd/lessons"
 import { TasksCommand } from "./cli/cmd/tasks"
 import { HeartbeatCommand } from "./cli/cmd/heartbeat"
+import { StandingCommand } from "./cli/cmd/standing"
 
 const rawArgs = hideBin(process.argv)
 const args = rawArgs
@@ -153,6 +154,7 @@ const cli = yargs(args)
   .command(LessonsCommand)
   .command(TasksCommand)
   .command(HeartbeatCommand)
+  .command(StandingCommand)
   .fail((msg, err) => {
     if (
       msg?.startsWith("Unknown argument") ||
