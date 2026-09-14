@@ -66,7 +66,10 @@ export function routeModel(input: string, options: { includeLocal?: boolean } = 
     for (const provider of definition.providers) {
       const model = definition.providerModels[provider as keyof typeof definition.providerModels]
       if (!model || !providerConfigured(provider)) continue
-      routes.push({ alias, provider, model, reason: provider === definition.providers[0] ? "preferred provider" : "model-compatible fallback" })
+      // Single-key policy: first configured provider only. No auto fallback
+      // chain; user switches the key manually in the external panel on exhaust.
+      routes.push({ alias, provider, model, reason: "preferred provider" })
+      break
     }
     if (options.includeLocal !== false) routes.push({ alias, provider: "ollama", model: alias === "deepseek" ? "llama3" : alias === "gemini" ? "llama3" : "llama3", reason: "local fallback" })
     return routes

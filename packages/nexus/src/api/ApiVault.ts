@@ -266,7 +266,7 @@ export function ensureApiKey(
     source: "auth",
     ...(validMetadata ? { metadata: validMetadata } : {}),
   }
-  vault.providers[provider] = [...entries, entry]
+  vault.providers[provider] = [entry]
   saveApiVault(vault)
   return entry
 }
@@ -303,7 +303,9 @@ export function addApiKey(
     source,
     ...(validMetadata ? { metadata: validMetadata } : {}),
   }
-  vault.providers[provider] = [...entries, entry]
+  // Single-key policy: one model = one API per provider. Adding a key replaces
+  // any previous key so rotation never cycles; user switches manually on exhaust.
+  vault.providers[provider] = [entry]
   saveApiVault(vault)
   return entry
 }
