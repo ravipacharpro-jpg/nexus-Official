@@ -2,7 +2,7 @@ import { Effect } from "effect"
 import type { Argv } from "yargs"
 import { Global } from "@nexus-ai/core/global"
 import { dueJobs, loadStore } from "../../scheduler"
-import { check } from "../../heartbeat"
+import { check, batteryOf } from "../../heartbeat"
 import { readIncidentFiles } from "../../lessons"
 import { cmd } from "./cmd"
 
@@ -15,8 +15,7 @@ async function termuxApi() {
 async function batteryPercent(): Promise<number> {
   try {
     const api = await termuxApi()
-    const status = (await Effect.runPromise(api.getBatteryStatus())) as { percentage?: unknown }
-    return typeof status.percentage === "number" ? status.percentage : 100
+    return batteryOf(await Effect.runPromise(api.getBatteryStatus()))
   } catch {
     return 100
   }
@@ -65,13 +64,18 @@ export const HeartbeatCommand = cmd({
           ? `${critical} critical incident(s) need attention`
           : decision.reason
     if (decision.speak) {
-      const delivered = await notify("NEXUS", message)
-      if (!delivered) console.log(message)
-    }
-    if (args.json) {
-      console.log(JSON.stringify({ ...decision, due: due.map((item) => item.job.id), message }, null, 2))
+      const announced = await notify("NEXUS", message)
+      if (args.json) {
+        console.log(JSON.stringify({ ...decision, announced, due: due.map((item) => item.job.id), message }, null, 2))
+        return
+      }
+      console.log(announced ? `Announced: ${decision.reason}.` : message)
       return
     }
-    console.log(decision.run ? (decision.speak ? message : `Silent turn: ${decision.reason}.`) : decision.reason)
+    if (args.json) {
+      console.log(JSON.stringify({ ...decision, announced: false, due: due.map((item) => item.job.id), message }, null, 2))
+      return
+    }
+    console.log(decision.run ? `Silent turn: ${decision.reason}.` : decision.reason)
   },
 })

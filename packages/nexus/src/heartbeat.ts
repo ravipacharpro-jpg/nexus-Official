@@ -4,6 +4,16 @@ import { decide, heartbeatIntervalMinutes, type QuietHours } from "./attention"
 // a full agent turn only starts when something is actually pending. Empty
 // heartbeats stay silent: monitoring must never become spam.
 
+// Battery readings come from outside and can be garbage: only finite numbers
+// count, everything else means "unknown" (100, no stretching either way).
+export function batteryOf(status: unknown): number {
+  if (status && typeof status === "object" && "percentage" in status) {
+    const value = (status as { percentage: unknown }).percentage
+    if (typeof value === "number" && Number.isFinite(value)) return Math.min(100, Math.max(0, value))
+  }
+  return 100
+}
+
 export interface HeartbeatInput {
   nowMs: number
   batteryPercent: number

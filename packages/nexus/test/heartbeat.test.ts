@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { check } from "../src/heartbeat"
+import { check, batteryOf } from "../src/heartbeat"
 
 const base = {
   nowMs: new Date(2026, 8, 14, 10, 0).getTime(),
@@ -53,5 +53,17 @@ describe("heartbeat policy", () => {
   test("low battery stretches the interval", () => {
     const decision = check({ ...base, batteryPercent: 10 })
     expect(decision.intervalMinutes).toBe(120)
+  })
+
+  test("battery readings accept only finite numbers", () => {
+    expect(batteryOf({ percentage: 55 })).toBe(55)
+    expect(batteryOf({ percentage: 0 })).toBe(0)
+    expect(batteryOf({ percentage: 140 })).toBe(100)
+    expect(batteryOf({ percentage: -5 })).toBe(0)
+    expect(batteryOf({ percentage: Number.NaN })).toBe(100)
+    expect(batteryOf({ percentage: Number.POSITIVE_INFINITY })).toBe(100)
+    expect(batteryOf({ percentage: "80" })).toBe(100)
+    expect(batteryOf({})).toBe(100)
+    expect(batteryOf(undefined)).toBe(100)
   })
 })
