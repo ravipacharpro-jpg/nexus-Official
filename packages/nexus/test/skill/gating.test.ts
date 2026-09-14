@@ -91,6 +91,16 @@ describe("skill prompt budget", () => {
   test("default budget is a sane positive number", () => {
     expect(SKILL_PROMPT_BUDGET_CHARS).toBeGreaterThan(0)
   })
+
+  test("compact listings never surface undescribed skills", () => {
+    const list: Skill.Info[] = [
+      { name: "shown-skill", description: "x".repeat(2000), location: "/tmp/shown/SKILL.md", content: "# shown" },
+      { name: "hidden-skill", location: "/tmp/hidden/SKILL.md", content: "# hidden" },
+    ]
+    const output = Skill.fmt(list, { verbose: false, maxChars: 100 })
+    expect(output).toContain("shown-skill")
+    expect(output).not.toContain("hidden-skill")
+  })
 })
 
 describe("skill discovery gating", () => {
@@ -147,6 +157,31 @@ os: [definitely-not-an-os]
           const skill = yield* Skill.Service
           const list = yield* skill.available()
           expect(list.some((item) => item.name === "gated-os-skill")).toBe(false)
+        }),
+    ),
+  )
+
+  it.live("loads skills with malformed gating instead of dropping them", () =>
+    provideTmpdirInstance(
+      (dir) =>
+        Effect.gen(function* () {
+          yield* Effect.promise(() =>
+            Bun.write(
+              path.join(dir, ".nexus", "skill", "typo-gating-skill", "SKILL.md"),
+              `---
+name: typo-gating-skill
+description: Gating has a typo.
+requires:
+  env: NEXUS_TEST_GATING_SKILL_KEY
+---
+
+# Typo gating
+`,
+            ),
+          )
+          const skill = yield* Skill.Service
+          const list = yield* skill.available()
+          expect(list.some((item) => item.name === "typo-gating-skill")).toBe(true)
         }),
     ),
   )

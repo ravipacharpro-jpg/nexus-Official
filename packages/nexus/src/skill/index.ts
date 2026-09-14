@@ -65,19 +65,43 @@ function isStringArray(data: unknown): data is string[] {
   return Array.isArray(data) && data.every((item) => typeof item === "string")
 }
 
-function isSkillFrontmatter(
-  data: unknown,
-): data is { name: string; description?: string; requires?: Info["requires"]; os?: string[] } {
-  if (!isRecord(data) || typeof data.name !== "string") return false
-  if (data.description !== undefined && typeof data.description !== "string") return false
-  if (data.os !== undefined && !isStringArray(data.os)) return false
+function isSkillIdentity(data: unknown): data is { name: string; description?: string } {
+  return (
+    isRecord(data) &&
+    typeof data.name === "string" &&
+    (data.description === undefined || typeof data.description === "string")
+  )
+}
+
+// Malformed gating never drops a skill: the skill loads with gating ignored
+// and a warning names the file, so a typo can't silently hide working skills.
+function parseGating(data: Record<string, unknown>): {
+  requires?: NonNullable<Info["requires"]>
+  os?: string[]
+  malformed: boolean
+} {
+  let malformed = false
+  let requires: NonNullable<Info["requires"]> | undefined
+  let os: string[] | undefined
+  if (data.os !== undefined) {
+    if (isStringArray(data.os)) os = data.os.map((item) => item.toLowerCase())
+    else malformed = true
+  }
   if (data.requires !== undefined) {
-    if (!isRecord(data.requires)) return false
-    for (const key of ["bins", "anyBins", "env", "config"]) {
-      if (data.requires[key] !== undefined && !isStringArray(data.requires[key])) return false
+    const raw = data.requires
+    const keys = ["bins", "anyBins", "env", "config"] as const
+    if (isRecord(raw) && keys.every((key) => raw[key] === undefined || isStringArray(raw[key]))) {
+      const picked: NonNullable<Info["requires"]> = {}
+      for (const key of keys) {
+        const values = raw[key]
+        if (isStringArray(values)) picked[key] = values
+      }
+      requires = picked
+    } else {
+      malformed = true
     }
   }
-  return true
+  return { requires, os, malformed }
 }
 
 export class InvalidError extends Schema.TaggedErrorClass<InvalidError>()("SkillInvalidError", {
@@ -143,7 +167,11 @@ const add = Effect.fnUntraced(function* (state: State, match: string, events: Ev
 
   if (!md) return
 
-  if (!isSkillFrontmatter(md.data)) return
+  if (!isSkillIdentity(md.data)) return
+  const gating = parseGating(md.data)
+  if (gating.malformed) {
+    yield* Effect.logWarning("ignoring malformed skill gating", { skill: match })
+  }
 
   if (state.skills[md.data.name]) {
     yield* Effect.logWarning("duplicate skill name", {
@@ -159,8 +187,8 @@ const add = Effect.fnUntraced(function* (state: State, match: string, events: Ev
     description: md.data.description,
     location: match,
     content: md.content,
-    ...(md.data.requires ? { requires: md.data.requires } : {}),
-    ...(md.data.os ? { os: md.data.os.map((os) => os.toLowerCase()) } : {}),
+    ...(gating.requires ? { requires: gating.requires } : {}),
+    ...(gating.os ? { os: gating.os } : {}),
   }
 })
 
@@ -435,10 +463,12 @@ export function fmt(list: Info[], opts: { verbose: boolean; maxChars?: number })
           .map((skill) => `- **${skill.name}**: ${skill.description}`),
       ].join("\n")
   if (full.length <= (opts.maxChars ?? SKILL_PROMPT_BUDGET_CHARS)) return full
+  // Compact keeps every listed identity with locations but drops descriptions,
+  // so it stays strictly shorter than the full rendering it replaces.
   const compact = opts.verbose
     ? [
         "<available_skills>",
-        ...list
+        ...described
           .toSorted((a, b) => a.name.localeCompare(b.name))
           .flatMap((skill) => [
             "  <skill>",
@@ -450,7 +480,7 @@ export function fmt(list: Info[], opts: { verbose: boolean; maxChars?: number })
       ].join("\n")
     : [
         "## Available Skills",
-        ...list
+        ...described
           .toSorted((a, b) => a.name.localeCompare(b.name))
           .map((skill) => `- **${skill.name}** (\`${skill.location}\`)`),
         "",

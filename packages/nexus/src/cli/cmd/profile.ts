@@ -84,9 +84,9 @@ function configRuntimeProfile(): string | undefined {
       if (data && typeof data === "object" && "profile" in data && typeof data.profile === "string") {
         return data.profile
       }
-      return undefined
+      continue
     } catch {
-      return undefined
+      continue
     }
   }
   return undefined
@@ -118,15 +118,21 @@ export function dumpRuntimeProfile(explicit?: string): RuntimeProfileDump {
   const fromConfig = configRuntimeProfile()
   const chosen = fromFlag ?? fromEnv ?? fromConfig
   const profile = resolveRuntimeProfile(chosen)
-  const reason = fromFlag
+  const source = fromFlag
     ? `--profile ${fromFlag}`
     : fromEnv
       ? "NEXUS_PROFILE env"
       : fromConfig
         ? `nexus.json profile: ${fromConfig}`
-        : isTermuxRuntime()
-          ? "auto-detected Termux"
-          : "default web"
+        : undefined
+  const reason =
+    source === undefined
+      ? isTermuxRuntime()
+        ? "auto-detected Termux"
+        : "default web"
+      : chosen !== undefined && !(chosen in RUNTIME_PROFILES)
+        ? `${source} (unknown, fell back to ${profile})`
+        : source
   return {
     profile,
     reason,

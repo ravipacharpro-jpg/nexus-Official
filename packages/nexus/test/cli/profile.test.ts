@@ -29,4 +29,11 @@ describe("profile runtime dump", () => {
       delete process.env.NEXUS_PROFILE
     }
   })
+
+  test("unknown explicit names report the fallback instead of claiming them", () => {
+    const dump = dumpRuntimeProfile("bogus")
+    expect(dump.reason).toContain("--profile bogus")
+    expect(dump.reason).toContain("fell back")
+    expect(RUNTIME_PROFILES[dump.profile]).toBeDefined()
+  })
 })
