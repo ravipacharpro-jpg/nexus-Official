@@ -76,4 +76,15 @@ describe("ModelRouter single-key policy", () => {
       },
     ])
   })
+
+  test("selects Edge Router low, medium, and high tiers explicitly", () => {
+    useTemporaryHome()
+    addApiKey("edge-router", "test-edge-key", "edge-router")
+
+    expect(routeModel("edge-router", { includeLocal: false, tier: "low" })[0]?.model).toBe("gemini-flash-lite-latest")
+    expect(routeModel("edge-router", { includeLocal: false, tier: "medium" })[0]?.model).toBe("gemini-flash-latest")
+    expect(routeModel("edge-router", { includeLocal: false, tier: "high" })[0]?.model).toBe("gemini-3.6-flash")
+    expect(routeModel("edge-router/low", { includeLocal: false })[0]?.model).toBe("gemini-flash-lite-latest")
+    expect(routeModel("gemini", { includeLocal: false, tier: "low" })[0]?.model).toBe("gemini-flash-lite-latest")
+  })
 })

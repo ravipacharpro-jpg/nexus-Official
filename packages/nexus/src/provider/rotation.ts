@@ -116,6 +116,7 @@ export class RotationEngine {
 export const PROVIDER_FALLBACK_ORDER = [
   "groq",
   "openrouter",
+  "edge-router",
   "cloudflare-workers-ai",
   "nvidia-nim",
   "google",

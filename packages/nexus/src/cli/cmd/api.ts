@@ -395,9 +395,12 @@ const RotateCommand = cmd({
 const RouteCommand = cmd({
   command: "route <model>",
   describe: "preview configured model candidates using stored local evidence only",
-  builder: (yargs: Argv) => yargs.option("format", { choices: ["table", "json"] as const, default: "table" }),
-  async handler(args: { model: string; format?: "table" | "json" }) {
-    const routes = routeModel(args.model)
+  builder: (yargs: Argv) =>
+    yargs
+      .option("format", { choices: ["table", "json"] as const, default: "table" })
+      .option("tier", { choices: ["low", "medium", "high"] as const, describe: "Edge Router capability tier" }),
+  async handler(args: { model: string; format?: "table" | "json"; tier?: "low" | "medium" | "high" }) {
+    const routes = routeModel(args.model, { tier: args.tier })
     process.stdout.write(
       formatApiRoutePreview({ model: args.model, routes, rows: apiVaultPublicRows() }, args.format ?? "table") + "\n",
     )

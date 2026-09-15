@@ -7,6 +7,15 @@ export interface ModelRoute {
   reason: string
 }
 
+export type ModelTier = "low" | "medium" | "high"
+
+/** Edge Router models ordered by capability and cost, verified against its public catalog. */
+export const EDGE_ROUTER_MODEL_TIERS: Record<ModelTier, string> = {
+  low: "gemini-flash-lite-latest",
+  medium: "gemini-flash-latest",
+  high: "gemini-3.6-flash",
+}
+
 export const MODEL_MAP = {
   deepseek: {
     providers: ["deepseek", "openrouter", "groq"] as const,
@@ -17,18 +26,20 @@ export const MODEL_MAP = {
     },
   },
   llama3_1: {
-    providers: ["groq", "openrouter", "cerebras"] as const,
+    providers: ["groq", "openrouter", "cerebras", "edge-router"] as const,
     providerModels: {
       groq: "openai/gpt-oss-120b",
       openrouter: "meta-llama/llama-3.1-8b-instruct:free",
       cerebras: "llama3.1-8b",
+      "edge-router": "llama-3.3-70b-versatile",
     },
   },
   gemini: {
-    providers: ["gemini", "openrouter"] as const,
+    providers: ["gemini", "openrouter", "edge-router"] as const,
     providerModels: {
       gemini: "gemini-3.6-flash",
       openrouter: "google/gemini-3.6-flash",
+      "edge-router": EDGE_ROUTER_MODEL_TIERS.high,
     },
   },
   gpt4: {
@@ -57,14 +68,17 @@ export function resolveModelAlias(input: string): string {
   return canonicalAlias(input) ?? input.trim()
 }
 
-export function routeModel(input: string, options: { includeLocal?: boolean } = {}): ModelRoute[] {
+export function routeModel(input: string, options: { includeLocal?: boolean; tier?: ModelTier } = {}): ModelRoute[] {
   const requested = input.trim()
   const alias = canonicalAlias(requested)
   const routes: ModelRoute[] = []
   if (alias) {
     const definition = MODEL_MAP[alias]
     for (const provider of definition.providers) {
-      const model = definition.providerModels[provider as keyof typeof definition.providerModels]
+      const model =
+        provider === "edge-router"
+          ? EDGE_ROUTER_MODEL_TIERS[options.tier ?? "medium"]
+          : definition.providerModels[provider as keyof typeof definition.providerModels]
       if (!model || !providerConfigured(provider)) continue
       // Single-key policy: first configured provider only. No auto fallback
       // chain; user switches the key manually in the external panel on exhaust.
@@ -74,10 +88,23 @@ export function routeModel(input: string, options: { includeLocal?: boolean } = 
     if (options.includeLocal !== false) routes.push({ alias, provider: "ollama", model: alias === "deepseek" ? "llama3" : alias === "gemini" ? "llama3" : "llama3", reason: "local fallback" })
     return routes
   }
+  if (requested === "edge-router" && providerConfigured("edge-router")) {
+    const tier = options.tier ?? "medium"
+    return [{
+      alias: requested,
+      provider: "edge-router",
+      model: EDGE_ROUTER_MODEL_TIERS[tier],
+      reason: `${tier} Edge Router tier`,
+    }]
+  }
   const slash = requested.indexOf("/")
   if (slash > 0) {
     const provider = requested.slice(0, slash) as ApiProvider
-    const model = requested.slice(slash + 1)
+    const requestedModel = requested.slice(slash + 1)
+    const model =
+      provider === "edge-router" && requestedModel in EDGE_ROUTER_MODEL_TIERS
+        ? EDGE_ROUTER_MODEL_TIERS[requestedModel as ModelTier]
+        : requestedModel
     if (provider === "ollama" || providerConfigured(provider)) return [{ alias: requested, provider, model, reason: "explicit provider/model" }]
   }
   if (options.includeLocal === false) return []
