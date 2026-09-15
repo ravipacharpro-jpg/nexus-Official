@@ -589,6 +589,12 @@ export async function discoverProviderModels(
   const cacheKey = `${provider}:${key}`
   const cached = discoveredModelsCache.get(cacheKey)
   if (cached && cached.expiresAt > Date.now()) return { status: "active", models: cached.models }
+  if (contract.validation?.kind === "chat") {
+    const checked = await checkKey(provider, key, metadata)
+    if (checked.status !== "active") {
+      return { status: checked.status, models: [], ...(checked.code ? { code: checked.code } : {}) }
+    }
+  }
   if (contract.validation?.kind === "cloudflare-run") {
     const checked = await checkKey(provider, key, metadata)
     if (checked.status !== "active") {
@@ -605,7 +611,8 @@ export async function discoverProviderModels(
     const url =
       contract.auth === "query" ? `${contract.modelsEndpoint}?key=${encodeURIComponent(key)}` : contract.modelsEndpoint
     const response = await fetch(url, { headers, signal: controller.signal })
-    const status = validationStatusForResponse(contract, response.status)
+    const status =
+      contract.validation?.kind === "chat" && response.ok ? "active" : validationStatusForResponse(contract, response.status)
     if (!response.ok) return { status, models: [], code: response.status }
     const models = modelNames(await response.json().catch(() => ({})))
     discoveredModelsCache.set(cacheKey, { expiresAt: Date.now() + 2 * 60 * 1000, models })
@@ -676,6 +683,23 @@ export async function checkKey(
   const timer = setTimeout(() => controller.abort(), 8000)
   const startedAt = Date.now()
   try {
+    if (contract.validation?.kind === "chat") {
+      const response = await fetch(`${contract.baseURL}/chat/completions`, {
+        method: "POST",
+        headers: { ...authHeadersFor(contract, key), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: contract.validation.model,
+          messages: [{ role: "user", content: "Reply with OK." }],
+          max_tokens: 1,
+        }),
+        signal: controller.signal,
+      })
+      return {
+        status: validationStatusForResponse(contract, response.status),
+        code: response.status,
+        latencyMs: Date.now() - startedAt,
+      }
+    }
     if (contract.validation?.kind === "cloudflare-run") {
       const accountId = metadata?.accountId
       if (!accountId || !/^[a-f0-9]{32}$/i.test(accountId)) return { status: "unknown" }
@@ -711,6 +735,12 @@ export async function checkKey(
 }
 
 export function validationStatusForResponse(contract: ProviderContract, status: number): ApiKeyStatus {
+  if (contract.validation?.kind === "chat") {
+    if (status >= 200 && status < 300) return "active"
+    if (status === 400 || status === 401 || status === 403) return "invalid"
+    if (status === 429) return "rate_limited"
+    return "unknown"
+  }
   if (contract.validation?.kind === "cloudflare-run") {
     if (status >= 200 && status < 300) return "active"
     if (status === 401 || status === 403) return "invalid"

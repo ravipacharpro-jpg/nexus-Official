@@ -31,6 +31,7 @@ export interface CuratedProviderModel {
 
 export type ProviderValidation =
   | { kind: "models" }
+  | { kind: "chat"; model: string }
   | { kind: "cloudflare-run"; model: string; payload: Record<string, unknown> }
 
 export interface ProviderContract {
@@ -114,10 +115,12 @@ export const PROVIDER_CONTRACTS: Record<string, ProviderContract> = {
     id: "edge-router",
     label: "Edge Router",
     modelsEndpoint: "https://edge-ai-router.vercel.app/api/v1/models",
+    modelsEndpointPublic: true,
     auth: "bearer",
     baseURL: "https://edge-ai-router.vercel.app/api/v1",
     npm: "@ai-sdk/openai-compatible",
     env: ["EDGE_ROUTER_API_KEY"],
+    validation: { kind: "chat", model: "gemini-flash-latest" },
     curatedModels: [
       { id: "gemini-flash-latest", name: "Gemini Flash (Edge Router)", context: 1048576, output: 8192, toolCall: true, reasoning: false, input: ["text"] },
       { id: "gemini-3.6-flash", name: "Gemini 3.6 Flash (Edge Router)", context: 1048576, output: 8192, toolCall: true, reasoning: false, input: ["text"] },
