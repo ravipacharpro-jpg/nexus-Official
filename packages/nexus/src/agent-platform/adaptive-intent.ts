@@ -15,6 +15,10 @@ export type AdaptiveIntent = {
   objective: string
   signals: string[]
   requestedWorkers: Array<"research" | "browser" | "web" | "android" | "coder" | "reviewer" | "tester" | "docs">
+  complexity: "low" | "medium" | "high"
+  modelTier: "fast" | "balanced" | "deep"
+  needsFreshKnowledge: boolean
+  confidence: number
   capabilityGaps: string[]
   requiresUserTakeover: boolean
   requiresApproval: boolean
@@ -53,11 +57,23 @@ export function classifyAdaptiveIntent(objective: string, capabilities: AgentCap
     capabilityGaps.push("browser inspection/automation adapter")
   if (workers.has("android") && !capabilities.android) capabilityGaps.push("Android tooling")
   if (workers.has("web") && !capabilities.webRuntime) capabilityGaps.push("web runtime")
+  const needsFreshKnowledge = /latest|current|today|news|research|compare|documentation|docs|reference/i.test(text)
+  const highRiskOrComplex =
+    matches.length >= 2 ||
+    /architect|architecture|migrat|refactor|security|production|deploy|complex|multiple|end.to.end/i.test(text)
+  const mediumSignal = /android|apk|browser|website|web|api|build|research|compare|documentation|docs/i.test(text)
+  const complexity = highRiskOrComplex ? "high" : text.length > 120 || mediumSignal ? "medium" : "low"
+  const modelTier = complexity === "high" || needsFreshKnowledge ? "deep" : complexity === "medium" ? "balanced" : "fast"
+  const confidence = matches.length === 0 ? 0.35 : Math.min(0.95, 0.6 + matches.length * 0.1)
   return {
     kind,
     objective: text,
     signals: matches.map(([, , signal]) => signal),
     requestedWorkers: [...workers],
+    complexity,
+    modelTier,
+    needsFreshKnowledge,
+    confidence,
     capabilityGaps,
     requiresUserTakeover: /login|sign in|password|otp|2fa|captcha|personal data/i.test(text),
     requiresApproval: /publish|payment|delete|merge|push|send|deploy|external/i.test(text),

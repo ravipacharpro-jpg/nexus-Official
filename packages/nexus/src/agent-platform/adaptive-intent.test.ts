@@ -31,6 +31,25 @@ describe("adaptive intent", () => {
     expect(intent.capabilityGaps).toContain("Android tooling")
   })
 
+  test("routes short uncomplicated requests to the fast tier", () => {
+    const intent = classifyAdaptiveIntent("Fix a typo", capabilities)
+    expect(intent.complexity).toBe("low")
+    expect(intent.modelTier).toBe("fast")
+    expect(intent.needsFreshKnowledge).toBe(false)
+    expect(intent.confidence).toBeGreaterThan(0.5)
+  })
+
+  test("routes mixed or current-information requests to deep reasoning", () => {
+    const intent = classifyAdaptiveIntent(
+      "Research the latest secure architecture options, compare them, and refactor the production API",
+      capabilities,
+    )
+    expect(intent.complexity).toBe("high")
+    expect(intent.modelTier).toBe("deep")
+    expect(intent.needsFreshKnowledge).toBe(true)
+    expect(intent.confidence).toBeGreaterThan(0.7)
+  })
+
   test("keeps revisions and constraints as safe requirement memory", () => {
     const memory = reviseRequirementMemory(
       createRequirementMemory("Improve this app"),

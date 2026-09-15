@@ -115,7 +115,9 @@ async function validateKey(provider: KeyProvider, key: string): Promise<boolean>
   const normalizedKey = typeof key === "string" ? key.trim() : ""
   if (!normalizedKey) return false
 
-  console.log(`Testing key: ${normalizedKey.slice(0, 5)}...`)
+  // Never print even a key prefix: short prefixes are still useful for
+  // correlating credentials across terminal logs and CI output.
+  console.log(`Testing ${PROVIDER_DEFINITIONS[provider].name} API key...`)
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 12_000)
