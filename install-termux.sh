@@ -104,6 +104,17 @@ case ":${PATH}:" in
     ;;
 esac
 
+# Auto-generate MASTER_KEY_SECRET if not set (needed for encrypted credential storage)
+if ! grep -q "MASTER_KEY_SECRET" "$HOME/.bashrc" 2>/dev/null; then
+    if command -v openssl >/dev/null 2>&1; then
+        MASTER_KEY_SECRET=$(openssl rand -hex 32)
+    else
+        MASTER_KEY_SECRET=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
+    fi
+    printf '\n# NEXUS - Master key for encrypted credential storage\nexport MASTER_KEY_SECRET="%s"\n' "$MASTER_KEY_SECRET" >> "$HOME/.bashrc"
+    say "Generated MASTER_KEY_SECRET"
+fi
+
 say "Installation complete"
 printf 'Run: source ~/.bashrc && nexus\n'
 printf 'Source: %s\n' "$SOURCE_DIR"

@@ -49,6 +49,7 @@ import {
   getCachedKeyStatus,
 } from "../api/ApiVault"
 import { PROVIDER_CONTRACTS, contractFor } from "../api/providers"
+import { checkKey } from "../api/ApiVault"
 
 function hasUsableProviderCredential(
   provider: Pick<Info, "id" | "key" | "source">,
@@ -67,6 +68,20 @@ function hasUsableProviderCredential(
     if (status.cooldownUntil && Date.parse(status.cooldownUntil) > now) return false
     return true
   })
+}
+
+/** Live health check for a provider's first available key. Returns true if key is active. */
+async function checkProviderHealth(providerID: string, apiKeys: Record<string, string[]>): Promise<boolean> {
+  const keys = configuredProviderKeys(apiKeys, providerID)
+  if (keys.length === 0) return false
+  // Check the first available key with a live API call
+  for (const key of keys) {
+    const result = await checkKey(providerID, key)
+    if (result.status === "active") return true
+    // If rate limited or invalid, try next key
+    if (result.status === "rate_limited" || result.status === "invalid") continue
+  }
+  return false
 }
 
 function mergeApiVaultKeys(configured: unknown): Record<string, string[]> {
@@ -230,8 +245,8 @@ function timeoutController(ms: number) {
   }
 }
 
-function apiDebugEnabled() {
-  return process.env.NEXUS_DEBUG_API === "1"
+function apiDebugEnabled(envs: Record<string, string | undefined>): boolean {
+  return envs.NEXUS_DEBUG_API === "1"
 }
 
 function safeApiURL(input: unknown): string {
@@ -265,8 +280,8 @@ function apiBodySummary(init?: RequestInit) {
   }
 }
 
-async function debugApiResponse(response: Response, url: string) {
-  if (!apiDebugEnabled()) return
+async function debugApiResponse(response: Response, url: string, envs: Record<string, string | undefined>) {
+  if (!apiDebugEnabled(envs)) return
   const body = await response
     .clone()
     .text()
@@ -501,12 +516,12 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
       const awsAccessKeyId = env["AWS_ACCESS_KEY_ID"]
       const configApiKey = providerConfig?.options?.apiKey
 
-      // TODO: Using process.env directly because Env.set only updates a process.env shallow copy,
-      // until the scope of the Env API is clarified (test only or runtime?)
+      // Use dep.env() instead of process.env directly
       const awsBearerToken = iife(() => {
-        const envToken = process.env.AWS_BEARER_TOKEN_BEDROCK
+        const envToken = env["AWS_BEARER_TOKEN_BEDROCK"]
         if (envToken) return envToken
         if (auth?.type === "api") {
+          // Note: Setting process.env is still needed for AWS SDK compatibility
           process.env.AWS_BEARER_TOKEN_BEDROCK = auth.key
           return auth.key
         }
@@ -516,7 +531,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
       const awsWebIdentityTokenFile = env["AWS_WEB_IDENTITY_TOKEN_FILE"]
 
       const containerCreds = Boolean(
-        process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI || process.env.AWS_CONTAINER_CREDENTIALS_FULL_URI,
+        env["AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"] || env["AWS_CONTAINER_CREDENTIALS_FULL_URI"],
       )
 
       if (
@@ -780,19 +795,19 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
     }),
     "sap-ai-core": Effect.fnUntraced(function* () {
       const auth = yield* dep.auth("sap-ai-core")
-      // TODO: Using process.env directly because Env.set only updates a shallow copy (not process.env),
-      // until the scope of the Env API is clarified (test only or runtime?)
+      const env = yield* dep.env()
       const envServiceKey = iife(() => {
-        const envAICoreServiceKey = process.env.AICORE_SERVICE_KEY
+        const envAICoreServiceKey = env["AICORE_SERVICE_KEY"]
         if (envAICoreServiceKey) return envAICoreServiceKey
         if (auth?.type === "api") {
+          // Note: Setting process.env is still needed for SAP SDK compatibility
           process.env.AICORE_SERVICE_KEY = auth.key
           return auth.key
         }
         return undefined
       })
-      const deploymentId = process.env.AICORE_DEPLOYMENT_ID
-      const resourceGroup = process.env.AICORE_RESOURCE_GROUP
+      const deploymentId = env["AICORE_DEPLOYMENT_ID"]
+      const resourceGroup = env["AICORE_RESOURCE_GROUP"]
 
       return {
         autoload: !!envServiceKey,
@@ -2030,7 +2045,7 @@ const layer = Layer.effect(
           const fetchFn = customFetch ?? fetch
           const opts = init ?? {}
           const debugURL = safeApiURL(input)
-          if (apiDebugEnabled()) {
+          if (apiDebugEnabled(envs)) {
             const headers = apiHeaderSummary(input, opts)
             const body = apiBodySummary(opts)
             console.error(
@@ -2059,11 +2074,11 @@ const layer = Layer.effect(
               timeout: false,
             }).finally(() => headerTimeoutCtl?.clear())
           } catch (error) {
-            if (apiDebugEnabled()) console.error(`[NEXUS API] fetch error url=${debugURL} error=${String(error)}`)
+            if (apiDebugEnabled(envs)) console.error(`[NEXUS API] fetch error url=${debugURL} error=${String(error)}`)
             throw error
           }
 
-          await debugApiResponse(res, debugURL)
+          await debugApiResponse(res, debugURL, envs)
           if (!chunkAbortCtl) return res
           return wrapSSE(res, chunkTimeout, chunkAbortCtl)
         }
@@ -2212,44 +2227,24 @@ const layer = Layer.effect(
         }
       }
 
-      // TODO: Remove these provider-specific assumptions once model syncing reliably reports available deployments.
-      if (providerID === ProviderV2.ID.azure || providerID === ProviderV2.ID.make("azure-cognitive-services")) {
-        return undefined
-      }
-
-      const priority = providerID.startsWith("nexus")
-        ? ["gpt-nano"]
-        : providerID.startsWith("github-copilot")
-          ? ["gpt-mini", ...smallModelFamilyPriority]
-          : smallModelFamilyPriority
+      // Generic small model selection based on model capabilities and metadata
+      // instead of provider-specific hardcoding. Prioritizes models with:
+      // - Small context limits (cheaper/faster)
+      // - tool_call support
+      // - Recent release dates
       const models = sortBy(
         Object.values(provider.models),
-        [(model) => model.release_date, "desc"],
+        [(model) => model.limit?.context ?? 0, "asc"], // Smaller context first
+        [(model) => model.release_date, "desc"], // Newer first
         [(model) => model.id, "desc"],
       )
-      for (const family of priority) {
-        const candidates = models.filter((model) => model.family === family)
-        if (providerID === ProviderV2.ID.amazonBedrock) {
-          const crossRegionPrefixes = ["global.", "us.", "eu."]
-
-          const globalMatch = candidates.find((model) => model.id.startsWith("global."))
-          if (globalMatch) return globalMatch
-
-          const region = provider.options?.region
-          if (region) {
-            const regionPrefix = region.split("-")[0]
-            if (regionPrefix === "us" || regionPrefix === "eu") {
-              const regionalMatch = candidates.find((model) => model.id.startsWith(`${regionPrefix}.`))
-              if (regionalMatch) return regionalMatch
-            }
-          }
-
-          const unprefixed = candidates.find((model) => !crossRegionPrefixes.some((p) => model.id.startsWith(p)))
-          if (unprefixed) return unprefixed
-          continue
-        }
-        if (candidates[0]) return candidates[0]
-      }
+      // Filter for text generation candidates with tool calling
+      const candidates = models.filter((model) => 
+        model.capabilities?.toolcall !== false && 
+        model.capabilities?.tool_call !== false &&
+        model.status !== "deprecated"
+      )
+      if (candidates[0]) return candidates[0]
 
       return undefined
     })
@@ -2307,21 +2302,31 @@ const layer = Layer.effect(
         .filter((p) => !isDeprecatedFreeProvider(p.id))
         .filter((p) => hasUsableProviderCredential(p, effectiveApiKeys))
         .sort((a, b) => providerPriority(a.id) - providerPriority(b.id) || a.id.localeCompare(b.id))
-      const provider = candidates[0]
-      if (!provider) return yield* new NoProvidersError()
-      const preferred = modelForAgent(provider.id, provider.models) ?? modelForProvider(provider.id, provider.models)
-      if (preferred) {
-        return {
-          providerID: provider.id,
-          modelID: ModelV2.ID.make(preferred),
+      
+      // Live health check: verify the first available key actually works
+      for (const provider of candidates) {
+        const isHealthy = yield* Effect.tryPromise({
+          try: () => checkProviderHealth(provider.id, effectiveApiKeys),
+          catch: () => false,
+        })
+        if (isHealthy) {
+          const preferred = modelForAgent(provider.id, provider.models) ?? modelForProvider(provider.id, provider.models)
+          if (preferred) {
+            return {
+              providerID: provider.id,
+              modelID: ModelV2.ID.make(preferred),
+            }
+          }
+          const [model] = sort(Object.values(provider.models))
+          if (!model) return yield* new NoModelsError({ providerID: provider.id })
+          return {
+            providerID: provider.id,
+            modelID: model.id,
+          }
         }
       }
-      const [model] = sort(Object.values(provider.models))
-      if (!model) return yield* new NoModelsError({ providerID: provider.id })
-      return {
-        providerID: provider.id,
-        modelID: model.id,
-      }
+      
+      return yield* new NoProvidersError()
     })
 
     const rotationKeyCount = Effect.fn("Provider.rotationKeyCount")(function* (providerID: ProviderV2.ID) {

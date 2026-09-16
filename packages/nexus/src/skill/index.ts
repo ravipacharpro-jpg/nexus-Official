@@ -1,6 +1,7 @@
 import { LayerNode } from "@nexus-ai/core/effect/layer-node"
 import path from "path"
 import { readdirSync } from "node:fs"
+import { fileURLToPath } from "node:url"
 import { Effect, Layer, Context, Schema } from "effect"
 import { NamedError } from "@nexus-ai/core/util/error"
 import type { Agent } from "@/agent/agent"
@@ -25,6 +26,7 @@ const AGENTS_EXTERNAL_DIR = ".agents"
 const EXTERNAL_SKILL_PATTERN = "skills/**/SKILL.md"
 const NEXUS_SKILL_PATTERN = "{skill,skills}/**/SKILL.md"
 const SKILL_PATTERN = "**/SKILL.md"
+const BUNDLED_SKILL_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "bundled")
 
 // Built-in skill that ships with nexus. The model's intuition for what an
 // nexus.json should look like is often wrong, and nexus hard-fails on
@@ -260,6 +262,11 @@ const discoverSkills = Effect.fnUntraced(function* (
     for (const root of upDirs) {
       yield* scan(state, root, EXTERNAL_SKILL_PATTERN, { dot: true, scope: "project" })
     }
+  }
+
+  // Scan bundled skills (ships with nexus)
+  if (yield* fsys.isDir(BUNDLED_SKILL_DIR)) {
+    yield* scan(state, BUNDLED_SKILL_DIR, SKILL_PATTERN, { scope: "bundled" })
   }
 
   const configDirs = yield* config.directories()

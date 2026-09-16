@@ -232,7 +232,7 @@ export function modelWarning(providerID: string): string | undefined {
 }
 
 function keyValues(apiKeys: RotatingKeys, providerID: string): string[] {
-  if (providerID === "google") return apiKeys.google ?? apiKeys.gemini ?? []
+  // Canonical provider ID is "gemini" (alias "google" maps to it)
   if (providerID === "gemini") return apiKeys.gemini ?? apiKeys.google ?? []
   return apiKeys[providerID] ?? []
 }
@@ -265,7 +265,8 @@ export function normalizeProviderKeyName(key: string): string | undefined {
     "nvidia-nim",
   ]
   if (!known.includes(provider)) return undefined
-  if (provider === "gemini") return "google"
+  // Canonicalize "google" alias to "gemini" (the actual provider ID)
+  if (provider === "google") return "gemini"
   if (provider === "cloudflare") return "cloudflare-workers-ai"
   return provider
 }

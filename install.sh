@@ -512,6 +512,21 @@ if [[ "$no_modify_path" != "true" ]]; then
     fi
 fi
 
+# Auto-generate MASTER_KEY_SECRET if not set (needed for encrypted credential storage)
+if ! grep -q "MASTER_KEY_SECRET" "$config_file" 2>/dev/null; then
+    if command -v openssl >/dev/null 2>&1; then
+        MASTER_KEY_SECRET=$(openssl rand -hex 32)
+    else
+        # Fallback: use /dev/urandom
+        MASTER_KEY_SECRET=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
+    fi
+    echo -e "\n# NEXUS - Master key for encrypted credential storage" >> "$config_file"
+    echo "export MASTER_KEY_SECRET=\"$MASTER_KEY_SECRET\"" >> "$config_file"
+    print_message info "${MUTED}Generated and saved ${NC}MASTER_KEY_SECRET ${MUTED}to ${NC}$config_file"
+else
+    print_message info "${MUTED}MASTER_KEY_SECRET already configured in ${NC}$config_file"
+fi
+
 if [ -n "${GITHUB_ACTIONS-}" ] && [ "${GITHUB_ACTIONS}" = "true" ]; then
     echo "$INSTALL_DIR" >> "$GITHUB_PATH"
     print_message info "Added $INSTALL_DIR to \$GITHUB_PATH"
