@@ -3,8 +3,16 @@ import { validationStatusForResponse } from "../../src/api/ApiVault"
 import { PROVIDER_CONTRACTS } from "../../src/api/providers"
 
 describe("API vault provider validation contracts", () => {
-  test("does not treat OpenCode's public model catalog as proof that an arbitrary key is active", () => {
-    expect(validationStatusForResponse(PROVIDER_CONTRACTS.opencode, 200)).toBe("unknown")
+  test("uses chat validation instead of treating OpenCode's public model catalog as proof", () => {
+    expect(PROVIDER_CONTRACTS.opencode.modelsEndpointPublic).toBeUndefined()
+    expect(validationStatusForResponse(PROVIDER_CONTRACTS.opencode, 200)).toBe("active")
+  })
+
+  test("uses OpenCode's OpenAI-compatible API and model catalog endpoints", () => {
+    expect(PROVIDER_CONTRACTS.opencode.modelsEndpoint).toBe("https://opencode.ai/zen/v1/models")
+    expect(PROVIDER_CONTRACTS.opencode.baseURL).toBe("https://opencode.ai/zen/v1")
+    expect(PROVIDER_CONTRACTS.opencode.npm).toBe("@ai-sdk/openai-compatible")
+    expect(PROVIDER_CONTRACTS.opencode.validation).toEqual({ kind: "chat", model: "big-pickle" })
   })
 
   test("maps provider authentication and quota failures to usable vault statuses", () => {

@@ -141,11 +141,14 @@ export const PROVIDER_CONTRACTS: Record<string, ProviderContract> = {
     id: "opencode",
     label: "OpenCode Gateway",
     modelsEndpoint: "https://opencode.ai/zen/v1/models",
-    modelsEndpointPublic: true,
     auth: "bearer",
     baseURL: "https://opencode.ai/zen/v1",
     npm: "@ai-sdk/openai-compatible",
     env: [],
+    // The models endpoint is public and cannot verify a credential. Use a
+    // minimal compatible request so invalid keys and rate limits are reported
+    // accurately when the user connects OpenCode.
+    validation: { kind: "chat", model: "big-pickle" },
   },
   anthropic: {
     id: "anthropic",
