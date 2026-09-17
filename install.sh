@@ -512,34 +512,6 @@ if [[ "$no_modify_path" != "true" ]]; then
     fi
 fi
 
-# Ensure the key is available both to future shells and to this installation
-# process. Previously it was only appended to a shell config, so the first
-# `nexus` invocation in the current shell could still fail.
-if [[ -z "${config_file:-}" ]]; then
-    config_file="$HOME/.profile"
-    touch "$config_file"
-fi
-
-if [[ -z "${MASTER_KEY_SECRET:-}" ]]; then
-    # Reuse the installer-managed export when one already exists. Do not source
-    # an arbitrary shell config during installation.
-    MASTER_KEY_SECRET=$(sed -nE 's/^export MASTER_KEY_SECRET="([^"]+)"[[:space:]]*$/\1/p' "$config_file" | tail -n 1)
-fi
-
-if [[ -z "${MASTER_KEY_SECRET:-}" ]]; then
-    if command -v openssl >/dev/null 2>&1; then
-        MASTER_KEY_SECRET=$(openssl rand -hex 32)
-    else
-        # Fallback: use /dev/urandom
-        MASTER_KEY_SECRET=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
-    fi
-    printf '\n# NEXUS - Master key for encrypted credential storage\nexport MASTER_KEY_SECRET="%s"\n' "$MASTER_KEY_SECRET" >> "$config_file"
-    print_message info "${MUTED}Generated and saved ${NC}MASTER_KEY_SECRET ${MUTED}to ${NC}$config_file"
-else
-    print_message info "${MUTED}MASTER_KEY_SECRET configured; reusing the existing key${NC}"
-fi
-export MASTER_KEY_SECRET
-
 if [ -n "${GITHUB_ACTIONS-}" ] && [ "${GITHUB_ACTIONS}" = "true" ]; then
     echo "$INSTALL_DIR" >> "$GITHUB_PATH"
     print_message info "Added $INSTALL_DIR to \$GITHUB_PATH"
