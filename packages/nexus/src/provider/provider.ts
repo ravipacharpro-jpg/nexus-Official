@@ -71,8 +71,16 @@ function hasUsableProviderCredential(
 }
 
 /** Live health check for a provider's first available key. Returns true if key is active. */
-async function checkProviderHealth(providerID: string, apiKeys: Record<string, string[]>): Promise<boolean> {
-  const keys = configuredProviderKeys(apiKeys, providerID)
+async function checkProviderHealth(
+  providerID: string,
+  apiKeys: Record<string, string[]>,
+  providerKey?: string,
+): Promise<boolean> {
+  if (providerID === "ollama") return true
+  const keys = [
+    ...(providerKey?.trim() ? [providerKey.trim()] : []),
+    ...configuredProviderKeys(apiKeys, providerID),
+  ].filter((key, index, all) => all.indexOf(key) === index)
   if (keys.length === 0) return false
   // Check the first available key with a live API call
   for (const key of keys) {
@@ -2271,8 +2279,15 @@ const layer = Layer.effect(
           isTextGenerationCandidate(provider.id, configured.modelID, configuredInfo) &&
           hasUsableProviderCredential(provider, effectiveApiKeys) &&
           !isDeprecatedFreeProvider(provider.id)
-        )
-          return configured
+        ) {
+          const healthy = yield* Effect.tryPromise({
+            try: () => checkProviderHealth(provider.id, effectiveApiKeys, provider.key),
+            catch: () => false,
+          })
+          if (healthy) return configured
+          // The configured provider/key is unavailable. Continue through the
+          // health-checked fallback providers below instead of retrying Groq.
+        }
         // If the configured provider/model is unavailable, fall through to recent/defaults.
       }
 
@@ -2306,7 +2321,7 @@ const layer = Layer.effect(
       // Live health check: verify the first available key actually works
       for (const provider of candidates) {
         const isHealthy = yield* Effect.tryPromise({
-          try: () => checkProviderHealth(provider.id, effectiveApiKeys),
+          try: () => checkProviderHealth(provider.id, effectiveApiKeys, provider.key),
           catch: () => false,
         })
         if (isHealthy) {
