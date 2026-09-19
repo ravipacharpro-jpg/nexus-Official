@@ -10,6 +10,7 @@ INSTALL_ROOT="${NEXUS_HOME:-$HOME/.nexus}"
 SOURCE_DIR="$INSTALL_ROOT/source"
 BIN_DIR="${NEXUS_BIN_DIR:-$HOME/bin}"
 LAUNCH="${NEXUS_LAUNCH:-0}"
+INSTALL_SERVICES="${NEXUS_SERVICES:-0}"
 
 say() { printf '\n[NEXUS] %s\n' "$*"; }
 die() { printf '\n[NEXUS] ERROR: %s\n' "$*" >&2; exit 1; }
@@ -156,6 +157,25 @@ if (!j["zen-free"]) {
 }
 ' "$HOME/.local/share/nexus/auth.json"
   say "Zen bridge installed (free tier models: big-pickle, mimo-v2.5-free, ...)"
+fi
+
+# Optional: register the bridge as a termux-services daemon so it survives
+# Termux restarts without needing a manual `nexus` launch first.
+if [ "$INSTALL_SERVICES" = "1" ]; then
+  SERVICE_SRC="$SOURCE_DIR/.nexus/scripts/termux-services/zen-bridge/run"
+  SERVICE_DST="$PREFIX/var/service/zen-bridge/run"
+  if [ -f "$SERVICE_SRC" ] && [ -n "${PREFIX:-}" ] && [ -d "$PREFIX/var/service" ]; then
+    mkdir -p "$(dirname "$SERVICE_DST")"
+    cp "$SERVICE_SRC" "$SERVICE_DST"
+    chmod 755 "$SERVICE_DST"
+    rm -f "$(dirname "$SERVICE_DST")/down"
+    if command -v sv >/dev/null 2>&1; then
+      sv up zen-bridge >/dev/null 2>&1 || true
+    fi
+    say "zen-bridge service enabled at $SERVICE_DST (auto-starts with Termux). Manage: sv status zen-bridge | sv down zen-bridge"
+  else
+    say "Skipped service install: termux-services not ready (pkg install termux-services)."
+  fi
 fi
 
 case ":${PATH}:" in
