@@ -1,5 +1,5 @@
 import type { Argv } from "yargs"
-import { mkdtemp, mkdir, readdir, readFile } from "node:fs/promises"
+import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { basename, join, resolve } from "node:path"
 import { execFile } from "node:child_process"
@@ -9,7 +9,7 @@ import { runtimeTempDirectory } from "@nexus-ai/core/platform"
 
 const execFileAsync = promisify(execFile)
 
-type DevArgs = { path: string; team?: boolean; solo?: boolean; apply?: boolean }
+type DevArgs = { path: string; team?: boolean; solo?: boolean; apply?: boolean; zen?: boolean; limit?: number }
 
 async function loadCore() {
   return import("@nexus/termux-core")
@@ -62,6 +62,8 @@ const FixCommand = cmd({
     .positional("path", { type: "string", describe: "repository path" })
     .option("team", { type: "boolean", default: false, describe: "force Manager → Lead → Worker → Checker mode" })
     .option("solo", { type: "boolean", default: false, describe: "force Senior Dev solo mode" })
+    .option("zen", { type: "boolean", default: false, describe: "use the local zen bridge model to generate precise line replacements" })
+    .option("limit", { type: "number", default: 6, describe: "maximum bugs to hand to the zen model per run" })
     .option("apply", { type: "boolean", default: false, describe: "allow safe automatic replacements when available" }),
   async handler(args: DevArgs) {
     const core = await loadCore()
@@ -72,6 +74,52 @@ const FixCommand = cmd({
         onProgress: (status) => process.stdout.write(`Progress: ${status.status} (${status.progress}%)\n`),
       })
       process.stdout.write(`${result.summary}\nTask ID: ${result.taskId}\n`)
+      return
+    }
+    if (args.zen) {
+      const analysis = await new core.SeniorDevAgent().analyze(args.path)
+      process.stdout.write(`${analysis.summary}\n`)
+      if (analysis.bugs.length === 0) {
+        process.stdout.write("No static issues detected; nothing to send to the zen model.\n")
+        return
+      }
+      const { ZenFixer } = await import("./dev/zen-fix")
+      const zen = new ZenFixer()
+      const rank = (b: { severity: string }) => (b.severity === "high" ? 0 : b.severity === "medium" ? 1 : 2)
+      const targets = [...analysis.bugs].sort((a, b) => rank(a) - rank(b) || a.line - b.line).slice(0, args.limit)
+      let applied = 0
+      let bridgeFlat = 0
+      for (const bug of targets) {
+        const fullPath = resolve(args.path, bug.file)
+        const result = await zen.fixBug({ ...bug, file: fullPath }, { dryRun: !args.apply })
+        const status = result.status.toUpperCase().padEnd(22)
+        process.stdout.write(`${status} ${bug.file}:${bug.line} — ${result.detail}\n`)
+        if (result.status === "model-request-failed" && result.detail.includes("zen-bridge")) bridgeFlat++
+        if (args.apply && result.status === "applied") {
+          const tests = await zen.verify(resolve(args.path))
+          process.stdout.write(`  Verification: ${tests.passed ? "passed" : "failed"}\n`)
+          if (!tests.passed) {
+            try {
+              await writeFile(fullPath, await readFile(`${fullPath}.zenbak`, "utf8"), "utf8")
+              process.stdout.write("  Reverted: verification failed.\n")
+            } catch {
+              process.stdout.write("  Revert failed: restore from <file>.zenbak manually.\n")
+            }
+            await rm(`${fullPath}.zenbak`, { force: true })
+            continue
+          }
+          applied++
+        }
+        await rm(`${fullPath}.zenbak`, { force: true })
+      }
+      if (bridgeFlat === targets.length && targets.length > 0) {
+        process.stdout.write("zen-bridge is not reachable — launch the 'nexus' command once to auto-start it, then retry.\n")
+      } else if (args.apply) {
+        process.stdout.write(`${applied} fix(es) written and verified; ${targets.length - applied} reverted, skipped, or failed.\n`)
+      } else {
+        process.stdout.write(`Dry run: ${targets.length} candidate fix(es) generated. Rerun with --apply to write them.\n`)
+      }
+      process.stdout.write("Model-written edits — review the diff with 'git diff' before relying on them.\n")
       return
     }
     const result = await new core.SeniorDevAgent().fix(args.path, { dryRun: !args.apply, runTests: true })
