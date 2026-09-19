@@ -152,6 +152,7 @@ export const PREFERRED_MODELS = {
   cerebras: ["llama3.3-70b", "llama3.1-8b"],
   opencode: ["claude-fable-5", "deepseek-v4-flash", "big-pickle", "mimo-v2.5-free", "grok-4-fast", "grok-3-mini"],
   nexus: ["claude-fable-5", "deepseek-v4-flash", "big-pickle", "mimo-v2.5-free", "grok-4-fast", "grok-3-mini"],
+  "zen-free": ["big-pickle", "mimo-v2.5-free", "deepseek-v4-flash-free", "claude-fable-5", "claude-sonnet-4-6"],
   openai: ["gpt-4o-mini", "gpt-4.1-mini"],
   anthropic: ["claude-sonnet-4-5", "claude-haiku-4-5", "claude-3-5-haiku-latest"],
   xai: ["grok-4", "grok-code-fast-1", "grok-3-mini"],
