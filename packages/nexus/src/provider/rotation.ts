@@ -138,7 +138,7 @@ export const PROVIDER_FALLBACK_ORDER = [
 
 /** Canonical low-cost/free model order used by setup, default selection, and model tests. */
 export const PREFERRED_MODELS = {
-  "edge-router": ["gemini-flash-latest", "llama-3.3-70b-versatile", "gemini-3.6-flash", "google/gemma-4-31b-it:free"],
+  "edge-router": ["gemini-flash-latest", "gemini-3.6-flash", "google/gemma-4-31b-it:free"],
   groq: ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.6-27b"],
   openrouter: [
     "meta-llama/llama-3.1-8b-instruct:free",
@@ -150,12 +150,12 @@ export const PREFERRED_MODELS = {
   google: ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash"],
   deepseek: ["deepseek-chat", "deepseek-reasoner"],
   cerebras: ["llama3.3-70b", "llama3.1-8b"],
-  opencode: ["claude-fable-5", "deepseek-v4-flash", "big-pickle", "mimo-v2.5-free", "grok-4-fast", "grok-3-mini"],
-  nexus: ["claude-fable-5", "deepseek-v4-flash", "big-pickle", "mimo-v2.5-free", "grok-4-fast", "grok-3-mini"],
+  opencode: ["claude-fable-5", "deepseek-v4-flash", "big-pickle", "mimo-v2.5-free", "grok-4.5"],
+  nexus: ["claude-fable-5", "deepseek-v4-flash", "big-pickle", "mimo-v2.5-free", "grok-4.5"],
   "zen-free": ["big-pickle", "mimo-v2.5-free", "deepseek-v4-flash-free", "claude-fable-5", "claude-sonnet-4-6"],
   openai: ["gpt-4o-mini", "gpt-4.1-mini"],
-  anthropic: ["claude-sonnet-4-5", "claude-haiku-4-5", "claude-3-5-haiku-latest"],
-  xai: ["grok-4", "grok-code-fast-1", "grok-3-mini"],
+  anthropic: ["claude-sonnet-4-5", "claude-haiku-4-5"],
+  xai: ["grok-4.5", "grok-4.6", "grok-build-0.1"],
   mistral: ["mistral-large-latest", "mistral-small-latest"],
   togetherai: ["meta-llama/Llama-3.3-70B-Instruct-Turbo", "Qwen/Qwen2.5-72B-Instruct-Turbo"],
   perplexity: ["sonar-pro", "sonar"],

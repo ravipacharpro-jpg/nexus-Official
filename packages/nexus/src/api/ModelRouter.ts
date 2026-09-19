@@ -31,7 +31,6 @@ export const MODEL_MAP = {
       groq: "openai/gpt-oss-120b",
       openrouter: "meta-llama/llama-3.1-8b-instruct:free",
       cerebras: "llama3.1-8b",
-      "edge-router": "llama-3.3-70b-versatile",
     },
   },
   gemini: {

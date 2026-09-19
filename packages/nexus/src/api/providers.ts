@@ -124,7 +124,6 @@ export const PROVIDER_CONTRACTS: Record<string, ProviderContract> = {
     curatedModels: [
       { id: "gemini-flash-latest", name: "Gemini Flash (Edge Router)", context: 1048576, output: 8192, toolCall: true, reasoning: false, input: ["text"] },
       { id: "gemini-3.6-flash", name: "Gemini 3.6 Flash (Edge Router)", context: 1048576, output: 8192, toolCall: true, reasoning: false, input: ["text"] },
-      { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B (Edge Router)", context: 128000, output: 8192, toolCall: true, reasoning: false, input: ["text"] },
       { id: "google/gemma-4-31b-it:free", name: "Gemma 4 31B free (Edge Router)", context: 128000, output: 8192, toolCall: true, reasoning: false, input: ["text"] },
     ],
   },
@@ -205,7 +204,7 @@ export const PROVIDER_CONTRACTS: Record<string, ProviderContract> = {
     curatedModels: [
       {
         id: "claude-fable-5",
-        name: "Claude Fable 5 (OpenCode Zen)",
+        name: "Claude Fable 5 (Nexus Zen)",
         context: 1048576,
         output: 8192,
         toolCall: true,
@@ -214,7 +213,7 @@ export const PROVIDER_CONTRACTS: Record<string, ProviderContract> = {
       },
       {
         id: "big-pickle",
-        name: "big-pickle (OpenCode Zen)",
+        name: "big-pickle (Nexus Zen)",
         context: 1048576,
         output: 8192,
         toolCall: true,
@@ -223,7 +222,7 @@ export const PROVIDER_CONTRACTS: Record<string, ProviderContract> = {
       },
       {
         id: "mimo-v2.5-free",
-        name: "Mimo 2.5 free (OpenCode Zen)",
+        name: "Mimo 2.5 free (Nexus Zen)",
         context: 1048576,
         output: 8192,
         toolCall: true,

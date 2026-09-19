@@ -51,7 +51,7 @@ function message(providerID: ProviderV2.ID, e: APICallError) {
       const errMsg = body.message || body.error || body.error?.message
       if (errMsg && typeof errMsg === "string") {
         if (errMsg.includes("can only be used from within OpenCode")) {
-          return "OpenCode Zen free models only work inside the OpenCode app — the gateway blocks free-tier calls from other clients (and validates no key against them). Connect a real API key (e.g. OpenRouter/Anthropic/OpenAI) or add payment to your Zen account for paid models, or pick a paid Zen model after billing."
+          return "Free OpenCode Zen models are only served to the OpenCode app itself, so other clients get blocked (server-side policy). Use the built-in zen-free provider (local bridge, default on Termux), or for paid models add a payment method to your Zen account at https://opencode.ai/workspace/billing."
         }
         return `${msg}: ${errMsg}`
       }

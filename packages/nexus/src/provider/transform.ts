@@ -644,18 +644,6 @@ export function variants(model: Provider.Model): Record<string, Record<string, a
     return {}
 
   // see: https://docs.x.ai/docs/guides/reasoning#control-how-hard-the-model-thinks
-  if (id.includes("grok") && id.includes("grok-3-mini")) {
-    if (model.api.npm === "@openrouter/ai-sdk-provider") {
-      return {
-        low: { reasoning: { effort: "low" } },
-        high: { reasoning: { effort: "high" } },
-      }
-    }
-    return {
-      low: { reasoningEffort: "low" },
-      high: { reasoningEffort: "high" },
-    }
-  }
 
   switch (model.api.npm) {
     case "@openrouter/ai-sdk-provider":
