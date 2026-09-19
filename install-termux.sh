@@ -89,6 +89,8 @@ mkdir -p "$BIN_DIR" "$HOME/.nexus/bots" "$HOME/.nexus/tools" "$HOME/.nexus/servi
 cat > "$BIN_DIR/nexus" <<'LAUNCHER'
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
+export TMPDIR="${TMPDIR:-$PREFIX/tmp}"
+mkdir -p "$TMPDIR"
 SOURCE_DIR="${NEXUS_HOME:-$HOME/.nexus}/source"
 [ -d "$SOURCE_DIR" ] || { printf '%s\n' 'NEXUS source is missing. Re-run install-termux.sh.' >&2; exit 1; }
 cd "$SOURCE_DIR"

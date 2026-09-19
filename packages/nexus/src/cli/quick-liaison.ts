@@ -115,3 +115,46 @@ export async function runBareUserTask(
     process.exitCode = 1
   }
 }
+
+/**
+ * Line-based interactive REPL used when the OpenTUI renderer cannot load its
+ * native asset (e.g. Termux/Android). Reuses a single liaison so follow-up
+ * messages keep working in the same process.
+ */
+export async function runTermuxRepl(dependencies: { write?: (text: string) => void; writeError?: (text: string) => void } = {}) {
+  const { createInterface } = await import("node:readline")
+  const { UserLiaison } = await import("@nexus/termux-core")
+  const write = dependencies.write ?? process.stdout.write.bind(process.stdout)
+  const writeError = dependencies.writeError ?? process.stderr.write.bind(process.stderr)
+  const liaison = new UserLiaison({
+    onUpdate(status) {
+      if (!["Complete", "Failed", "Paused", "Cancelled", "Needs review"].includes(status.status)) return
+      const detail = status.result?.summary ?? status.error ?? status.status
+      write(`NEXUS task ${status.taskId}: ${detail}${EOL}`)
+    },
+  })
+  const rl = createInterface({ input: process.stdin, output: process.stdout })
+  rl.setPrompt("nexus> ")
+  write(`NEXUS Termux line mode. Type a task, 'help', or 'exit' to quit.${EOL}`)
+  rl.prompt()
+  rl.on("line", async (line) => {
+    const trimmed = line.trim()
+    if (!trimmed) {
+      rl.prompt()
+      return
+    }
+    if (trimmed === "exit" || trimmed === "quit" || trimmed === "/exit") {
+      rl.close()
+      return
+    }
+    try {
+      const response = await liaison.handleUserMessage(trimmed, "local", process.cwd())
+      write(response + EOL + EOL)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      writeError(`❌ Task failed: ${message}${EOL}${EOL}`)
+    }
+    rl.prompt()
+  })
+  rl.on("close", () => process.exit(0))
+}

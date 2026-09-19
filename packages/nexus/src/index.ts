@@ -12,7 +12,14 @@ if (args.length === 1 && (args[0] === "--version" || args[0] === "-v")) {
   process.exit(0)
 }
 
-if (isBareUserTask(args)) {
+const isNativeTermux =
+  typeof process.env.TERMUX_VERSION === "string" ||
+  (typeof process.env.PREFIX === "string" && process.env.PREFIX.includes("com.termux"))
+
+if (args.length === 0 && isNativeTermux) {
+  const { runTermuxRepl } = await import("./cli/quick-liaison")
+  await runTermuxRepl()
+} else if (isBareUserTask(args)) {
   await runBareUserTask(args)
 } else {
   await import("./main")

@@ -2,6 +2,7 @@ import { execFile } from "node:child_process"
 import { mkdir, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { promisify } from "node:util"
+import { runtimeTempDirectory } from "@nexus-ai/core/platform"
 import { SeniorDevAgent } from "./SeniorDevAgent"
 import { ManagerAgent, type ProjectResult, type TeamStatus } from "./TeamHierarchy"
 import { SmartManager, TaskControlInterruption, type CapacityProbe, type TaskControlAction } from "./SmartManager"
@@ -29,7 +30,7 @@ export type LiaisonOptions = {
   capacityProbe?: CapacityProbe
 }
 
-const statusRoot = join("/tmp", "nexus", "liaison")
+const statusRoot = join(runtimeTempDirectory(), "nexus", "liaison")
 
 export function classifyMessage(message: string): MessageType {
   const lower = message.toLowerCase().trim()
