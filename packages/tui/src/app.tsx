@@ -9,7 +9,7 @@ import { ClipboardProvider, useClipboard } from "./context/clipboard"
 import { ExitProvider, useExit } from "./context/exit"
 import { EpilogueProvider } from "./context/epilogue"
 import * as Selection from "./util/selection"
-import { createCliRenderer, MouseButton } from "@opentui/core"
+import { createCliRenderer, MouseButton, setRenderLibPath as setOpenTuiRenderLibPath } from "@opentui/core"
 import { RouteProvider, useRoute } from "./context/route"
 import {
   Switch,
@@ -181,6 +181,11 @@ function isVersionGreater(left: string, right: string) {
   if (!a.prerelease) return true
   if (!b.prerelease) return false
   return a.prerelease.localeCompare(b.prerelease, undefined, { numeric: true }) > 0
+}
+
+if (process.platform === "android") {
+  const { resolve } = await import("node:path")
+  setOpenTuiRenderLibPath(resolve(import.meta.dir, "../assets/libopentui-android-arm64.so"))
 }
 
 export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {

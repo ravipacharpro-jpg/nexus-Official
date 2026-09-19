@@ -16,7 +16,7 @@ const isNativeTermux =
   typeof process.env.TERMUX_VERSION === "string" ||
   (typeof process.env.PREFIX === "string" && process.env.PREFIX.includes("com.termux"))
 
-if (args.length === 0 && isNativeTermux) {
+if (args.length === 0 && isNativeTermux && process.env.NEXUS_LINE) {
   const { runTermuxRepl } = await import("./cli/quick-liaison")
   await runTermuxRepl()
 } else if (isBareUserTask(args)) {
