@@ -93,10 +93,70 @@ export TMPDIR="${TMPDIR:-$PREFIX/tmp}"
 mkdir -p "$TMPDIR"
 SOURCE_DIR="${NEXUS_HOME:-$HOME/.nexus}/source"
 [ -d "$SOURCE_DIR" ] || { printf '%s\n' 'NEXUS source is missing. Re-run install-termux.sh.' >&2; exit 1; }
+
+# Auto-start the zen-bridge (free OpenCode Zen tier via local `opencode serve`)
+# if it is not already running. The bridge also spawns serve itself.
+BRIDGE_URL="${ZEN_BRIDGE_URL:-http://127.0.0.1:4897}"
+if [ -f "$HOME/.nexus/bin/zen-bridge.ts" ] && ! curl -sf --max-time 2 "$BRIDGE_URL/v1/models" >/dev/null 2>&1; then
+  if command -v setsid >/dev/null 2>&1; then
+    setsid -f bun "$HOME/.nexus/bin/zen-bridge.ts" >/dev/null 2>>"$TMPDIR/zen-bridge.log" &
+  else
+    nohup bun "$HOME/.nexus/bin/zen-bridge.ts" >/dev/null 2>>"$TMPDIR/zen-bridge.log" &
+  fi
+  for i in 1 2 3 4 5 6 7 8 9 10; do
+    curl -sf --max-time 2 "$BRIDGE_URL/v1/models" >/dev/null 2>&1 && break
+    sleep 1
+  done
+fi
+
 cd "$SOURCE_DIR"
 exec bun run --cwd packages/nexus --conditions=browser src/index.ts "$@"
 LAUNCHER
 chmod 755 "$BIN_DIR/nexus"
+
+# Install the local zen-bridge and configure the free OpenCode Zen provider.
+# The bridge turns the device's own `opencode serve` into an
+# OpenAI-compatible endpoint so Nexus can use Zen free-tier models.
+BRIDGE_SRC="$SOURCE_DIR/.nexus/scripts/zen-bridge.ts"
+if [ -f "$BRIDGE_SRC" ]; then
+  mkdir -p "$HOME/.nexus/bin" "$HOME/.config/nexus" "$HOME/.local/share/nexus"
+  cp "$BRIDGE_SRC" "$HOME/.nexus/bin/zen-bridge.ts"
+  chmod 755 "$HOME/.nexus/bin/zen-bridge.ts"
+  # Default global config: zen-free provider + default model, only when absent.
+  if [ ! -f "$HOME/.config/nexus/nexus.jsonc" ]; then
+    cat > "$HOME/.config/nexus/nexus.jsonc" <<'CONF'
+{
+  "$schema": "https://nexus.ai/config.json",
+  "model": "zen-free/big-pickle",
+  "provider": {
+    "zen-free": {
+      "name": "Zen Free (local bridge)",
+      "api": "http://127.0.0.1:4897/v1",
+      "models": {
+        "big-pickle": {},
+        "mimo-v2.5-free": {},
+        "deepseek-v4-flash-free": {},
+        "claude-fable-5": {},
+        "claude-sonnet-4-6": {}
+      }
+    }
+  }
+}
+CONF
+  fi
+  # Merge a zen-free placeholder key into the auth store (only when missing).
+  bun -e '
+const { readFileSync, writeFileSync } = require("fs")
+const auth = process.argv[1]
+let j = {}
+try { j = JSON.parse(readFileSync(auth, "utf8")) } catch {}
+if (!j["zen-free"]) {
+  j["zen-free"] = { type: "api", key: "zen-bridge-token" }
+  writeFileSync(auth, JSON.stringify(j, null, 2) + "\n")
+}
+' "$HOME/.local/share/nexus/auth.json"
+  say "Zen bridge installed (free tier models: big-pickle, mimo-v2.5-free, ...)"
+fi
 
 case ":${PATH}:" in
   *:"$BIN_DIR":*) ;;
