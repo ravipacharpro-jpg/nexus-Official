@@ -26,7 +26,6 @@ import { Filesystem } from "@/util/filesystem"
 import { createNexusClient, type NexusClient, type ToolPart } from "@nexus-ai/sdk/v2"
 import { FormatError, FormatUnknownError } from "../error"
 import { INTERACTIVE_INPUT_ERROR, resolveInteractiveStdin } from "./run/runtime.stdin"
-import { modelWarning } from "@/provider/rotation"
 import { isKnownModelAlias, routeModel } from "@/api/ModelRouter"
 import { findSafeBrowserHandoffUrl, openLocalBrowser } from "../../agent-platform/browser-handoff"
 
@@ -98,13 +97,6 @@ function block(info: Inline, output?: string) {
 
 function formatRunError(error: unknown) {
   return FormatError(error) ?? FormatUnknownError(error)
-}
-
-function warnDeprecatedModel(value: string | undefined) {
-  if (!value) return
-  const [providerID] = value.split("/")
-  const warning = modelWarning(providerID)
-  if (warning) UI.println(UI.Style.TEXT_WARNING_BOLD + "!", UI.Style.TEXT_NORMAL, warning)
 }
 
 async function tool(part: ToolPart) {
@@ -920,7 +912,6 @@ export const RunCommand = effectCmd({
             return
           }
 
-        warnDeprecatedModel(args.model)
         const model = pick(args.model)
         const result = await client.session.prompt({
             sessionID,
@@ -938,7 +929,6 @@ export const RunCommand = effectCmd({
           return
         }
 
-        warnDeprecatedModel(args.model)
         const model = pick(args.model)
         const { runInteractiveMode } = await import("./run/runtime")
         try {
@@ -967,7 +957,6 @@ export const RunCommand = effectCmd({
       }
 
       if (interactive && !args.attach && !args.session && !args.continue) {
-        warnDeprecatedModel(args.model)
         const model = pick(args.model)
         const { runInteractiveLocalMode } = await import("./run/runtime")
         const fetchFn = (async (input: RequestInfo | URL, init?: RequestInit) => {

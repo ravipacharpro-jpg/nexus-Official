@@ -34,7 +34,6 @@ import { ProviderError } from "./error"
 import {
   RotationEngine,
   providerPriority,
-  isDeprecatedFreeProvider,
   configuredProviderKeys,
   modelForProvider,
   modelForAgent,
@@ -2304,8 +2303,7 @@ const layer = Layer.effect(
           configuredInfo &&
           configuredInfo.status !== "deprecated" &&
           isTextGenerationCandidate(provider.id, configured.modelID, configuredInfo) &&
-          hasUsableProviderCredential(provider, effectiveApiKeys) &&
-          !isDeprecatedFreeProvider(provider.id)
+          hasUsableProviderCredential(provider, effectiveApiKeys)
         ) {
           const healthy = yield* Effect.tryPromise({
             try: () => checkProviderHealth(provider.id, effectiveApiKeys, provider.key),
@@ -2333,7 +2331,6 @@ const layer = Layer.effect(
       for (const entry of recent) {
         const provider = s.providers[entry.providerID]
         if (!provider) continue
-        if (isDeprecatedFreeProvider(provider.id)) continue
         if (!provider.models[entry.modelID]) continue
         return { providerID: entry.providerID, modelID: entry.modelID }
       }
@@ -2341,7 +2338,6 @@ const layer = Layer.effect(
       const configured = Object.keys(cfg.provider ?? {})
       const candidates = Object.values(s.providers)
         .filter((p) => configured.length === 0 || configured.includes(p.id) || p.id === "opencode" || p.id === "nexus")
-        .filter((p) => !isDeprecatedFreeProvider(p.id))
         .filter((p) => hasUsableProviderCredential(p, effectiveApiKeys))
         .sort((a, b) => providerPriority(a.id) - providerPriority(b.id) || a.id.localeCompare(b.id))
       
@@ -2393,7 +2389,6 @@ const layer = Layer.effect(
       const configured = Object.keys(cfg.provider ?? {})
       return Object.values(s.providers)
         .filter((p) => p.id !== excludeProviderID)
-        .filter((p) => !isDeprecatedFreeProvider(p.id))
         .filter((p) => configured.length === 0 || configured.includes(p.id) || p.id === "opencode" || p.id === "nexus")
         .filter((p) => hasUsableProviderCredential(p, effectiveApiKeys))
         .sort((a, b) => providerPriority(a.id) - providerPriority(b.id) || a.id.localeCompare(b.id))

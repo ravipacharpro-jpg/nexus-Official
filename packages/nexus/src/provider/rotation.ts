@@ -225,15 +225,6 @@ export function providerPriority(providerID: string): number {
   return index === -1 ? PROVIDER_FALLBACK_ORDER.length : index
 }
 
-export function isDeprecatedFreeProvider(providerID: string): boolean {
-  return false // We want opencode to be available as a fallback
-}
-
-export function modelWarning(providerID: string): string | undefined {
-  if (!isDeprecatedFreeProvider(providerID)) return undefined
-  return "OpenCode free model is rate-limited. Consider: ollama, groq, or openrouter."
-}
-
 function keyValues(apiKeys: RotatingKeys, providerID: string): string[] {
   // Canonical provider ID is "gemini" (alias "google" maps to it)
   if (providerID === "gemini") return apiKeys.gemini ?? apiKeys.google ?? []
