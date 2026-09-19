@@ -17,4 +17,8 @@ if (process.versions.bun !== expectedBunVersion) {
   console.warn(`Warning: Bun version ${process.versions.bun} differs from expected ${expectedBunVersion}`);
 }
 '
-bun typecheck
+if [ -n "${PREFIX:-}" ] && [ -d "$PREFIX" ] && [ "$PREFIX" = "/data/data/com.termux/files/usr" ]; then
+  echo "[pre-push] Skipping 'bun typecheck' on Termux/Android (Turborepo has no android-arm64 build)."
+else
+  bun typecheck
+fi
