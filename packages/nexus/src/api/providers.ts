@@ -148,12 +148,17 @@ export const PROVIDER_CONTRACTS: Record<string, ProviderContract> = {
     // The models endpoint is public and cannot verify a credential. Use a
     // minimal compatible request so invalid keys and rate limits are reported
     // accurately when the user connects OpenCode.
-    validation: { kind: "chat", model: "big-pickle" },
+    // Validation uses a paid catalog model: the zen gateway refuses FREE-tier
+    // models to every client other than the opencode app (server-side policy,
+    // "can only be used from within OpenCode"), so validating against a free
+    // model would mark every real key as invalid. A paid model only 401s on a
+    // bad key.
+    validation: { kind: "chat", model: "claude-fable-5" },
     // Offline fallback roster (kept in sync with the live public catalog).
     curatedModels: [
       {
-        id: "grok-code-fast-1",
-        name: "Grok Code Fast 1 (OpenCode Zen)",
+        id: "claude-fable-5",
+        name: "Claude Fable 5 (OpenCode Zen)",
         context: 1048576,
         output: 8192,
         toolCall: true,
@@ -191,11 +196,16 @@ export const PROVIDER_CONTRACTS: Record<string, ProviderContract> = {
     baseURL: "https://opencode.ai/zen/v1",
     npm: "@ai-sdk/openai-compatible",
     env: [],
-    validation: { kind: "chat", model: "big-pickle" },
+    // Validation uses a paid catalog model: the zen gateway refuses FREE-tier
+    // models to every client other than the opencode app (server-side policy,
+    // "can only be used from within OpenCode"), so validating against a free
+    // model would mark every real key as invalid. A paid model only 401s on a
+    // bad key.
+    validation: { kind: "chat", model: "claude-fable-5" },
     curatedModels: [
       {
-        id: "grok-code-fast-1",
-        name: "Grok Code Fast 1 (OpenCode Zen)",
+        id: "claude-fable-5",
+        name: "Claude Fable 5 (OpenCode Zen)",
         context: 1048576,
         output: 8192,
         toolCall: true,
