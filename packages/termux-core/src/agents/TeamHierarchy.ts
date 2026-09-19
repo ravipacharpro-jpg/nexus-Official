@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
-import { basename, join, resolve } from "node:path"
+import { basename, extname, join, resolve } from "node:path"
 import { runtimeTempDirectory } from "@nexus-ai/core/platform"
 import { DualWorkerPool } from "./DualWorkerPool"
-import { CodeReader, type FileSummary } from "./SeniorDevAgent"
+import { BugDetector, CodeReader, type BugReport, type FileSummary } from "./SeniorDevAgent"
 import { SmartManager, TaskControlInterruption, type TaskControlAction } from "./SmartManager"
 
 export type TaskSize = "small" | "medium" | "large"
@@ -128,11 +128,17 @@ export class WorkerAgent {
     const outputPath = join(this.ipcRoot, "workers", workerId, "output.json")
     try {
       const files = task.file ? [task.file] : []
+      const findings = task.file ? await this.inspectFile(task.file) : []
+      const summary = task.file
+        ? findings.length > 0
+          ? `Detected ${findings.length} potential issue(s) in ${basename(task.file)} (analysis only): ${findings.map((bug) => `${bug.severity} ${bug.line} ${bug.description}`).join("; ")}`
+          : `No issues detected in ${basename(task.file)}`
+        : `Inspected ${task.file ? basename(task.file) : "the assigned module"}; no source change was applied automatically.`
       const result: WorkerResult = {
         workerId,
         taskId: task.id,
         status: "done",
-        summary: `Inspected ${task.file ? basename(task.file) : "the assigned module"}; no source change was applied automatically.`,
+        summary,
         files,
         changes: [],
       }
@@ -152,6 +158,21 @@ export class WorkerAgent {
       return result
     }
   }
+
+  private async inspectFile(filePath: string): Promise<BugReport[]> {
+    const content = await readFile(filePath, "utf8")
+    const detector = new BugDetector()
+    return detector.analyze([
+      {
+        path: filePath,
+        size: content.length,
+        extension: extname(filePath),
+        modifiedAt: 0,
+        content: content.slice(0, 100 * 1024),
+        truncated: content.length > 100 * 1024,
+      },
+    ])
+  }
 }
 
 export class CheckerAgent {
@@ -162,7 +183,11 @@ export class CheckerAgent {
     const checked: CheckerResult = {
       workerId: result.workerId,
       status: approved ? "approved" : "rejected",
-      notes: approved ? "Worker output is structurally valid and contains no unreviewed code change." : result.error ?? "Worker escalated the task.",
+      notes: approved
+        ? result.summary.startsWith("Detected")
+          ? `Worker analysis recorded. ${result.summary}. No code change was applied.`
+          : "Worker output is structurally valid and contains no unreviewed code change."
+        : result.error ?? "Worker escalated the task.",
     }
     await writeJson(join(this.ipcRoot, "checkers", result.workerId, "results.json"), checked)
     return checked
@@ -364,7 +389,7 @@ export class ManagerAgent {
         updatedAt: Date.now(),
       }), options.onProgress)
       await this.smartManager.update(taskId, resultStatus)
-      return { taskId, size, stats, modules: selectedModules, leads, status: resultStatus, summary: `${resultStatus === "completed" ? "Team workflow completed" : "Team workflow needs review"}: ${leads.length} team lead(s), ${completedWorkers} worker(s), and file-based IPC at ${ipcRoot}.` }
+      return { taskId, size, stats, modules: selectedModules, leads, status: resultStatus, summary: `${resultStatus === "completed" ? "Team workflow completed (analysis only, no code modified)" : "Team workflow needs review"}: ${completedWorkers} worker(s) covered ${completedModules}/${selectedModules.length} module(s); findings at ${ipcRoot}.` }
     } catch (error) {
       if (error instanceof TaskControlInterruption) {
         await this.smartManager.update(taskId, error.action === "pause" ? "paused" : "cancelled")

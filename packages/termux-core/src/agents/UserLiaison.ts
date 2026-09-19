@@ -92,11 +92,13 @@ export class UserLiaison {
   }
 
   private async executeSmallTask(message: string, root: string, userId: string) {
-    await this.emit({ taskId: "solo", userId, message, status: "Senior Dev analyzing", progress: 20, startedAt: Date.now(), updatedAt: Date.now() })
+    const startedAt = Date.now()
+    await this.emit({ taskId: "solo", userId, message, status: "Senior Dev analyzing", progress: 20, startedAt, updatedAt: startedAt })
     const result = /\b(review|analy[sz]e|scan|inspect)\b/i.test(message)
       ? await this.seniorDev.analyze(root)
       : await this.seniorDev.fix(root, { runTests: true })
-    return `Complete. ${result.summary}`
+    await this.emit({ taskId: "solo", userId, message, status: "Complete", progress: 100, startedAt, updatedAt: Date.now() })
+    return `Done. ${result.summary}`
   }
 
   private async startBigTask(message: string, root: string, userId: string) {
@@ -233,7 +235,7 @@ export class UserLiaison {
       "NEXUS User Liaison commands:",
       "  nexus dev read <github-url>   Clone/scan workflow entry",
       "  nexus dev analyze <path>      Static bug analysis",
-      "  nexus dev fix <path>          Safe fix workflow",
+      "  nexus dev fix <path>          Analyze + attempt only safe fixes",
       "  nexus dev review <path>       Review workflow",
       "  nexus dev optimize <path>     Performance review",
       "  nexus dev status              Active team status",

@@ -127,16 +127,24 @@ export class Businessman {
       console.log("⚒️ Starting task execution...")
       const hiredWorkers = hired.filter((worker) => worker.success).map((worker) => worker.name)
       const context = { hiredWorkers }
+      if (plan.workersNeeded.length === 0) {
+        throw new Error("Task could not be classified into a supported automation skill (bot/download/network/scrape/image/system). Nothing was generated.")
+      }
       const generated = plan.taskType === "bot"
         ? await this.botAgent.execute(userCommand, context)
         : await this.toolAgent.execute(userCommand, context)
+      const outputDir = (generated as { outputDir?: string }).outputDir
       const checked = await this.debugAgent.execute(userCommand, {
         ...context,
-        outputDir: (generated as { outputDir?: string }).outputDir,
+        outputDir,
       })
       const result = { generated, checked }
       await this.queue.update(jobId, "completed")
-      console.log(`✅ Task completed.${(generated as { outputDir?: string }).outputDir ? ` Files: ${(generated as { outputDir: string }).outputDir}` : ""}`)
+      if (outputDir) {
+        console.log(`✅ Task generated and validated (${checked.checked.join(", ")}). Run it with: ${outputDir}/run.sh`)
+      } else {
+        console.log("✅ Task generated and validated.")
+      }
       void this.services.notify("NEXUS task completed", userCommand.slice(0, 120)).catch(() => undefined)
       void this.services.toast("NEXUS task completed").catch(() => undefined)
 

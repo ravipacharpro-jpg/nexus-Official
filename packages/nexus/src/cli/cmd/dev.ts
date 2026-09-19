@@ -57,7 +57,7 @@ const AnalyzeCommand = cmd({
 
 const FixCommand = cmd({
   command: "fix <path>",
-  describe: "run a safe Senior Dev fix workflow; use --team for hierarchy mode",
+  describe: "analyze a repository and apply only high-confidence safe fixes (analysis-only otherwise)",
   builder: (yargs: Argv) => yargs
     .positional("path", { type: "string", describe: "repository path" })
     .option("team", { type: "boolean", default: false, describe: "force Manager → Lead → Worker → Checker mode" })
@@ -76,6 +76,9 @@ const FixCommand = cmd({
     }
     const result = await new core.SeniorDevAgent().fix(args.path, { dryRun: !args.apply, runTests: true })
     process.stdout.write(`${result.summary}\n`)
+    if (result.fixes && result.fixes.fixed.length === 0) {
+      process.stdout.write("Note: no automatic fix was applied — the local detector only reports likely issues and is not a model.\n")
+    }
     if (result.tests) process.stdout.write(`Verification: ${result.tests.passed ? "passed" : "failed"}${result.tests.command ? ` (${result.tests.command})` : ""}\n`)
     for (const item of result.fixes?.skipped ?? []) process.stdout.write(`Skipped ${item.bug.file}:${item.bug.line} — ${item.reason}\n`)
   },

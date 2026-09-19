@@ -280,7 +280,15 @@ export class SeniorDevAgent extends BaseAgent {
       }
       fixes.fixed.length = 0
     }
-    return { ...analysis, fixes, tests, summary: `Found ${analysis.bugs.length} issues; fixed ${fixes.fixed.length}, skipped ${fixes.skipped.length}.` }
+    return {
+      ...analysis,
+      fixes,
+      tests,
+      summary:
+        fixes.fixed.length > 0
+          ? `Found ${analysis.bugs.length} issues; applied ${fixes.fixed.length} safe fix(es), skipped ${fixes.skipped.length}.`
+          : `Found ${analysis.bugs.length} issues; 0 automatically fixed (${options.dryRun ? "dry run" : "no safe exact replacement available locally"}). Review findings manually or run under a model.`,
+    }
   }
 
   async execute(task: string, context: AgentContext): Promise<SeniorDevResult> {
