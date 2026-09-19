@@ -89,7 +89,7 @@ async function connect(ctx: PluginContext): Promise<number | void> {
 
   if (!spec.implemented) {
     ctx.err(`${spec.name} OAuth flow is not implemented yet — listed for transparency only.`)
-    ctx.out(dim(`Track progress on https://github.com/itzgeniusboy/nexus/issues`))
+    ctx.out(dim(`Track progress on https://github.com/ravipacharpro-jpg/nexus-Official/issues`))
     return 1
   }
 

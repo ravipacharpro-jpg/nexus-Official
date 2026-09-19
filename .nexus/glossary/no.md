@@ -2,8 +2,8 @@
 
 ## Sources
 
-- PR #10018: https://github.com/anomalyco/nexus/pull/10018
-- PR #12935: https://github.com/anomalyco/nexus/pull/12935
+- PR #10018: https://github.com/ravipacharpro-jpg/nexus-Official/pull/10018
+- PR #12935: https://github.com/ravipacharpro-jpg/nexus-Official/pull/12935
 
 ## Do Not Translate (Locale Additions)
 

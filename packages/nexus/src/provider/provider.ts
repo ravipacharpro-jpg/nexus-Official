@@ -55,7 +55,7 @@ function hasUsableProviderCredential(
   provider: Pick<Info, "id" | "key" | "source">,
   apiKeys: Record<string, string[]>,
 ): boolean {
-  if (provider.id === "ollama" || provider.id === "opencode") return true
+  if (provider.id === "ollama" || provider.id === "opencode" || provider.id === "nexus") return true
   if (provider.source === "env" || provider.source === "api") return true
   const keys = [...(provider.key ? [provider.key] : []), ...configuredProviderKeys(apiKeys, provider.id)]
   if (keys.length === 0) return false
@@ -70,13 +70,40 @@ function hasUsableProviderCredential(
   })
 }
 
+const HEALTH_PROBE_TIMEOUT_MS = 1500
+
+/** Reachability probe for keyless providers (ollama / opencode gateway). */
+async function isEndpointReachable(url: string): Promise<boolean> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), HEALTH_PROBE_TIMEOUT_MS)
+  try {
+    const res = await fetch(url, {
+      headers: { accept: "application/json" },
+      signal: controller.signal,
+    })
+    return res.ok || res.status === 401 || res.status === 403
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 /** Live health check for a provider's first available key. Returns true if key is active. */
 async function checkProviderHealth(
   providerID: string,
   apiKeys: Record<string, string[]>,
   providerKey?: string,
 ): Promise<boolean> {
-  if (providerID === "ollama") return true
+  // Keyless providers: probe reachability instead of requiring a credential so
+  // the free fallback path (opencode/nexus/ollama) can actually be selected.
+  if (providerID === "ollama") {
+    return isEndpointReachable(`${ollamaBaseURL()}/models`)
+  }
+  if (providerID === "opencode" || providerID === "nexus") {
+    const contract = contractFor(providerID)
+    return isEndpointReachable(contract?.modelsEndpoint ?? "https://opencode.ai/zen/v1/models")
+  }
   const keys = [
     ...(providerKey?.trim() ? [providerKey.trim()] : []),
     ...configuredProviderKeys(apiKeys, providerID),
@@ -2313,7 +2340,7 @@ const layer = Layer.effect(
 
       const configured = Object.keys(cfg.provider ?? {})
       const candidates = Object.values(s.providers)
-        .filter((p) => configured.length === 0 || configured.includes(p.id) || p.id === "opencode")
+        .filter((p) => configured.length === 0 || configured.includes(p.id) || p.id === "opencode" || p.id === "nexus")
         .filter((p) => !isDeprecatedFreeProvider(p.id))
         .filter((p) => hasUsableProviderCredential(p, effectiveApiKeys))
         .sort((a, b) => providerPriority(a.id) - providerPriority(b.id) || a.id.localeCompare(b.id))
@@ -2367,7 +2394,7 @@ const layer = Layer.effect(
       return Object.values(s.providers)
         .filter((p) => p.id !== excludeProviderID)
         .filter((p) => !isDeprecatedFreeProvider(p.id))
-        .filter((p) => configured.length === 0 || configured.includes(p.id) || p.id === "opencode")
+        .filter((p) => configured.length === 0 || configured.includes(p.id) || p.id === "opencode" || p.id === "nexus")
         .filter((p) => hasUsableProviderCredential(p, effectiveApiKeys))
         .sort((a, b) => providerPriority(a.id) - providerPriority(b.id) || a.id.localeCompare(b.id))
         .flatMap((p) => {

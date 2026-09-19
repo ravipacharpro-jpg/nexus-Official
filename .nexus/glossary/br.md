@@ -2,7 +2,7 @@
 
 ## Sources
 
-- PR #10086: https://github.com/anomalyco/nexus/pull/10086
+- PR #10086: https://github.com/ravipacharpro-jpg/nexus-Official/pull/10086
 
 ## Do Not Translate (Locale Additions)
 

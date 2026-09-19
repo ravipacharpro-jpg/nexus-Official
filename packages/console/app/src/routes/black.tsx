@@ -260,7 +260,7 @@ export default function BlackLayout(props: RouteSectionProps) {
       <footer data-component="footer">
         <div data-slot="footer-content">
           <span data-slot="anomaly">
-            ©{new Date().getFullYear()} <a href="https://anoma.ly">Anomaly</a>
+            ©{new Date().getFullYear()} <a href="https://github.com/ravipacharpro-jpg/nexus-Official">Nexus</a>
           </span>
           <a href={config.github.repoUrl} target="_blank">
             {i18n.t("nav.github")} <span data-slot="github-stars">[{starCount()}]</span>
@@ -275,7 +275,7 @@ export default function BlackLayout(props: RouteSectionProps) {
           </span>
         </div>
         <span data-slot="anomaly-alt">
-          ©{new Date().getFullYear()} <a href="https://anoma.ly">Anomaly</a>
+          ©{new Date().getFullYear()} <a href="https://github.com/ravipacharpro-jpg/nexus-Official">Nexus</a>
         </span>
       </footer>
     </div>

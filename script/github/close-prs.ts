@@ -2,7 +2,7 @@
 
 import { parseArgs } from "util"
 
-const defaultRepo = "anomalyco/nexus"
+const defaultRepo = "ravipacharpro-jpg/nexus-Official"
 const defaultAgeMonths = 1
 const defaultThreshold = 2
 const defaultSleepMs = 20_000

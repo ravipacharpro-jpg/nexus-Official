@@ -15,7 +15,7 @@ This extension requires the [nexus CLI](https://nexus.ai) to be installed on you
 
 ## Support
 
-This is an early release. If you encounter issues or have feedback, please create an issue at https://github.com/anomalyco/nexus/issues.
+This is an early release. If you encounter issues or have feedback, please create an issue at https://github.com/ravipacharpro-jpg/nexus-Official/issues.
 
 ## Development
 

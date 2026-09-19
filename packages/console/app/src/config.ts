@@ -7,10 +7,10 @@ export const config = {
 
   // GitHub
   github: {
-    repoUrl: "https://github.com/anomalyco/nexus",
+    repoUrl: "https://github.com/ravipacharpro-jpg/nexus-Official",
     starsFormatted: {
-      compact: "195K",
-      full: "195,000",
+      compact: "0",
+      full: "0",
     },
   },
 
@@ -20,10 +20,10 @@ export const config = {
     discord: "https://discord.gg/nexus",
   },
 
-  // Static stats (used on landing page)
+  // Static stats (used on landing page; refreshed from the live GitHub API when available)
   stats: {
-    contributors: "950",
-    commits: "13,000",
-    monthlyUsers: "16M",
+    contributors: "2",
+    commits: "263",
+    monthlyUsers: "0",
   },
 } as const

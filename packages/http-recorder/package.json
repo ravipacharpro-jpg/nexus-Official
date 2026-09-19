@@ -7,11 +7,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/anomalyco/nexus.git",
+    "url": "git+https://github.com/ravipacharpro-jpg/nexus-Official.git",
     "directory": "packages/http-recorder"
   },
-  "homepage": "https://github.com/anomalyco/nexus/tree/dev/packages/http-recorder",
-  "bugs": "https://github.com/anomalyco/nexus/issues",
+  "homepage": "https://github.com/ravipacharpro-jpg/nexus-Official/tree/dev/packages/http-recorder",
+  "bugs": "https://github.com/ravipacharpro-jpg/nexus-Official/issues",
   "keywords": [
     "effect",
     "http",

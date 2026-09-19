@@ -18,7 +18,6 @@
     "upgrade-opentui": "bun run script/upgrade-opentui.ts",
     "postinstall": "bun run --cwd packages/core fix-node-pty",
     "prepare": "husky",
-    "random": "echo 'Random script'",
     "sso": "aws sso login --sso-session=nexus --no-browser",
     "translate:app": "bun run script/translate-app.ts",
     "test:lowmem": "bash script/test-lowmem.sh",

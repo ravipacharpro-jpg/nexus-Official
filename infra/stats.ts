@@ -104,9 +104,10 @@ export const inferenceEvent = new sst.Linkable("InferenceEvent", {
 // DATABASE
 ////////////////
 
+// Replace with your own PlanetScale organization when deploying.
 const cluster = planetscale.getDatabaseOutput({
   name: "nexus-stats",
-  organization: "anomalyco",
+  organization: "<your-planetscale-org>",
 })
 
 const branch =

@@ -364,7 +364,7 @@ jobs:
           persist-credentials: false
 
       - name: Run nexus
-        uses: anomalyco/nexus/github@latest${envStr}
+        uses: ravipacharpro-jpg/nexus-Official/github@latest${envStr}
         with:
           model: ${provider}/${model}`,
         )
@@ -902,7 +902,7 @@ export const githubRun = Effect.fn("Cli.github.run")(function* (args: { event?: 
               providerID,
               modelID,
             },
-            // agent is omitted - server will use default_agent from config or fall back to "build"
+            // agent is omitted - server will use default_agent from config or fall back to "master"
             parts: [
               {
                 id: PartID.ascending(),

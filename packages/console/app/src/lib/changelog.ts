@@ -39,7 +39,7 @@ export type ChangelogData = {
 }
 
 export async function loadChangelog(): Promise<ChangelogData> {
-  const response = await fetch("https://api.github.com/repos/anomalyco/nexus/releases?per_page=20", {
+  const response = await fetch("https://api.github.com/repos/ravipacharpro-jpg/nexus-Official/releases?per_page=20", {
     headers: {
       Accept: "application/vnd.github.v3+json",
       "User-Agent": "NEXUS-Console",

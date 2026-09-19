@@ -33,7 +33,7 @@ Prefer guidance that is:
 
 ## Sources
 
-- PR #12345: https://github.com/anomalyco/nexus/pull/12345
+- PR #12345: https://github.com/ravipacharpro-jpg/nexus-Official/pull/12345
 
 ## Do Not Translate (Locale Additions)
 

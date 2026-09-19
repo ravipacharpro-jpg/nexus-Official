@@ -259,7 +259,15 @@ if (Script.release) {
     }
   }
   const releaseFiles = Object.keys(binaries).map((key) => (key.includes("linux") ? `./dist/${key}-${Script.version}.tar.gz` : `./dist/${key}-${Script.version}.zip`))
-  await $`gh release upload v${Script.version} ${releaseFiles} --clobber --repo ${process.env.GH_REPO}`
+  const uploadFiles = [...releaseFiles]
+  for (const file of releaseFiles) {
+    const unversioned = file.replace(new RegExp(`-${Script.version}(\\.(?:tar\\.gz|zip))$`), "$1")
+    if (unversioned !== file) {
+      await $`cp ${file} ${unversioned}`
+      uploadFiles.push(unversioned)
+    }
+  }
+  await $`gh release upload v${Script.version} ${uploadFiles} --clobber --repo ${process.env.GH_REPO}`
 }
 
 export { binaries }

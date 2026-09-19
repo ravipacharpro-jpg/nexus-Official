@@ -353,7 +353,7 @@ function vmUserData(): string {
 set -e
 curl -fsSL https://bun.sh/install | bash
 export PATH="$HOME/.bun/bin:$PATH"
-git clone --depth 1 https://github.com/itzgeniusboy/nexus.git /opt/nexus || true
+git clone --depth 1 https://github.com/ravipacharpro-jpg/nexus-Official.git /opt/nexus || true
 cd /opt/nexus/packages/nexus
 for i in $(seq 1 10); do bun install --backend=copyfile >/dev/null 2>&1 && break; done
 cat > /etc/systemd/system/nexus.service <<'UNIT'

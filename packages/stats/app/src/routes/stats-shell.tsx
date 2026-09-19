@@ -8,9 +8,9 @@ import { route, type Locale } from "../lib/language"
 export type HeaderLink = { href: string; label: string }
 
 export const githubLink = {
-  href: "https://github.com/anomalyco/nexus",
-  apiHref: "https://api.github.com/repos/anomalyco/nexus",
-  fallbackStars: "195K",
+  href: "https://github.com/ravipacharpro-jpg/nexus-Official",
+  apiHref: "https://api.github.com/repos/ravipacharpro-jpg/nexus-Official",
+  fallbackStars: "0",
 }
 export const themePreferences = ["dark", "light", "system"] as const
 export const themeStorageKey = "nexus:stats-theme"
@@ -241,7 +241,7 @@ export function Footer(props: {
     { href: "https://nexus.ai/discord", label: i18n.t("footer.community") },
     { href: "https://x.com/nexus", label: "X" },
     { href: githubLink.href, label: i18n.t("header.github") },
-    { href: "https://www.youtube.com/@anomalyco", label: i18n.t("footer.youtube") },
+    { href: "https://github.com/ravipacharpro-jpg/nexus-Official", label: i18n.t("footer.youtube") },
   ]
   const bridge = () =>
     props.bridge === undefined

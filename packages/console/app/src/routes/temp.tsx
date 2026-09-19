@@ -161,7 +161,7 @@ export default function Home() {
             <a href="https://x.com/nexus">{i18n.t("footer.x")}</a>
           </div>
           <div data-slot="cell">
-            <a href="https://github.com/anomalyco/nexus">{i18n.t("footer.github")}</a>
+            <a href="https://github.com/ravipacharpro-jpg/nexus-Official">{i18n.t("footer.github")}</a>
           </div>
           <div data-slot="cell">
             <a href="https://nexus.ai/discord">{i18n.t("footer.discord")}</a>
@@ -171,7 +171,7 @@ export default function Home() {
 
       <div data-component="legal">
         <span>
-          ©2025 <a href="https://anoma.ly">Anomaly</a>
+          ©2025 <a href="https://github.com/ravipacharpro-jpg/nexus-Official">Nexus</a>
         </span>
       </div>
     </main>

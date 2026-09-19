@@ -32,7 +32,7 @@ export namespace AWS {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          FromEmailAddress: `NEXUS Zen <contact@anoma.ly>`,
+          FromEmailAddress: `NEXUS Zen <${process.env.EMAIL_FROM_ADDRESS ?? "noreply@nexus.invalid"}>`,
           Destination: {
             ToAddresses: [input.to],
           },

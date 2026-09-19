@@ -85,65 +85,13 @@ export function BillingSection() {
     checkoutSubmission.clear()
   }
 
-  // DUMMY DATA FOR TESTING - UNCOMMENT ONE OF THE SCENARIOS BELOW
-
-  // Scenario 1: User has not added billing details and has no balance
-  // const balanceInfo = () => ({
-  //   balance: 0,
-  //   paymentMethodType: null as string | null,
-  //   paymentMethodLast4: null as string | null,
-  //   reload: false,
-  //   reloadError: null as string | null,
-  //   timeReloadError: null as Date | null,
-  // })
-
-  // Scenario 2: User has not added billing details but has a balance
-  // const balanceInfo = () => ({
-  //   balance: 1500000000, // $15.00
-  //   paymentMethodType: null as string | null,
-  //   paymentMethodLast4: null as string | null,
-  //   reload: false,
-  //   reloadError: null as string | null,
-  //   timeReloadError: null as Date | null
-  // })
-
-  // Scenario 3: User has added billing details (reload enabled)
-  // const balanceInfo = () => ({
-  //   balance: 750000000, // $7.50
-  //   paymentMethodType: "card",
-  //   paymentMethodLast4: "4242",
-  //   reload: true,
-  //   reloadError: null as string | null,
-  //   timeReloadError: null as Date | null
-  // })
-
-  // Scenario 4: User has billing details but reload failed
-  // const balanceInfo = () => ({
-  //   balance: 250000000, // $2.50
-  //   paymentMethodType: "card",
-  //   paymentMethodLast4: "4242",
-  //   reload: true,
-  //   reloadError: "Your card was declined." as string,
-  //   timeReloadError: new Date(Date.now() - 3600000) as Date // 1 hour ago
-  // })
-
-  // Scenario 5: User has Link payment method
-  // const balanceInfo = () => ({
-  //   balance: 500000000, // $5.00
-  //   paymentMethodType: "link",
-  //   paymentMethodLast4: null as string | null,
-  //   reload: true,
-  //   reloadError: null as string | null,
-  //   timeReloadError: null as Date | null
-  // })
-
   return (
     <section class={styles.root}>
       <div data-slot="section-title">
         <h2>{i18n.t("workspace.billing.title")}</h2>
         <p>
           {i18n.t("workspace.billing.subtitle.beforeLink")}{" "}
-          <a href="mailto:help@anoma.ly">{i18n.t("workspace.billing.contactUs")}</a>{" "}
+          <a href="https://github.com/ravipacharpro-jpg/nexus-Official/issues/new">{i18n.t("workspace.billing.contactUs")}</a>{" "}
           {i18n.t("workspace.billing.subtitle.afterLink")}
         </p>
       </div>

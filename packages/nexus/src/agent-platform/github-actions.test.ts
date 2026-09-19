@@ -4,11 +4,11 @@ describe("GitHub action planner", () => {
   test("normalizes repository URLs and creates an approval-only idempotency plan", () => {
     const plan = planGitHubAction({
       kind: "createPullRequest",
-      repository: "https://github.com/itzgeniusboy/nexus-fixed.git",
+      repository: "https://github.com/ravipacharpro-jpg/nexus-Official.git",
       intent: "Open a repair pull request after verification",
     })
 
-    expect(plan.repository).toBe("itzgeniusboy/nexus-fixed")
+    expect(plan.repository).toBe("ravipacharpro-jpg/nexus-Official")
     expect(plan.requiresApproval).toBe(true)
     expect(plan.mutation).toBe(false)
     expect(plan.idempotencyKey).toMatch(/^[a-f0-9]{32}$/)

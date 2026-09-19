@@ -5,6 +5,7 @@ import video from "../asset/lander/nexus-min.mp4"
 import videoPoster from "../asset/lander/nexus-poster.png"
 import { IconCopy, IconCheck } from "../component/icon"
 import { A, createAsync } from "@solidjs/router"
+import { createMemo } from "solid-js"
 import { EmailSignup } from "~/component/email-signup"
 import { Tabs } from "@kobalte/core/tabs"
 import { Faq } from "~/component/faq"
@@ -29,7 +30,21 @@ function CopyStatus() {
 export default function Home() {
   const i18n = useI18n()
   const language = useLanguage()
-  const _githubData = createAsync(() => github())
+  const githubData = createAsync(() => github())
+  const growthInfo = createMemo(() => {
+    const data = githubData()
+    const formatter = (value: number) =>
+      new Intl.NumberFormat(language.tag(language.locale()), {
+        notation: "compact",
+        compactDisplay: "short",
+      }).format(value)
+    return {
+      stars: data?.stars ? formatter(data.stars) : config.github.starsFormatted.full,
+      contributors: data?.contributors ? formatter(data.contributors) : config.stats.contributors,
+      commits: data?.commits ? formatter(data.commits) : config.stats.commits,
+      monthlyUsers: config.stats.monthlyUsers,
+    }
+  })
   const handleCopyClick = (event: Event) => {
     const button = event.currentTarget as HTMLButtonElement
     const text = button.textContent
@@ -143,7 +158,7 @@ export default function Home() {
                     <button data-copy data-slot="command" onClick={handleCopyClick}>
                       <span>
                         <span data-slot="protocol">brew install </span>
-                        <span data-slot="highlight">anomalyco/tap/nexus</span>
+                        <span data-slot="highlight">nexus</span>
                       </span>
                       <CopyStatus />
                     </button>
@@ -237,10 +252,10 @@ export default function Home() {
                 <span>[*]</span>
                 <p
                   innerHTML={i18n.t("home.growth.body", {
-                    stars: config.github.starsFormatted.full,
-                    contributors: config.stats.contributors,
-                    commits: config.stats.commits,
-                    monthlyUsers: config.stats.monthlyUsers,
+                    stars: growthInfo().stars,
+                    contributors: growthInfo().contributors,
+                    commits: growthInfo().commits,
+                    monthlyUsers: growthInfo().monthlyUsers,
                   })}
                 />
               </div>

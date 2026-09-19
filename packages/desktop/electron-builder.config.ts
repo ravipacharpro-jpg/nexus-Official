@@ -138,7 +138,7 @@ function getConfig() {
         appId,
         productName: "NEXUS Beta",
         protocols: { name: "NEXUS Beta", schemes: ["nexus"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "nexus-beta", channel: "latest" },
+        publish: { provider: "github", owner: "ravipacharpro-jpg", repo: "nexus-Official", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId)] },
         rpm: { packageName: "nexus-beta", fpm: [metainfoFpm(appId)] },
       }
@@ -149,7 +149,7 @@ function getConfig() {
         appId,
         productName: "NEXUS",
         protocols: { name: "NEXUS", schemes: ["nexus"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "nexus", channel: "latest" },
+        publish: { provider: "github", owner: "ravipacharpro-jpg", repo: "nexus-Official", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
         rpm: { packageName: "nexus", fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
       }

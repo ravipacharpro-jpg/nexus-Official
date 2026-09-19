@@ -2,7 +2,7 @@
 
 ## Release status
 
-This release packages the currently implemented autonomous-agent foundation for terminal-first use on Linux, Termux/Android, and PC environments. It is based on commit `070bdf1` on `main`.
+This release packages the currently implemented autonomous-agent foundation for terminal-first use on Linux, Termux/Android, and PC environments. It is based on commit `f9bc8dd` on `main`.
 
 ## Included capabilities
 

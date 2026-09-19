@@ -105,7 +105,7 @@ for (const item of targets) {
         name: `@nexus-ai/${name}`,
         version: Script.version,
         license: "MIT",
-        repository: { type: "git", url: "git+https://github.com/anomalyco/nexus.git" },
+        repository: { type: "git", url: "git+https://github.com/ravipacharpro-jpg/nexus-Official.git" },
         os: [item.os],
         cpu: [item.arch],
       },

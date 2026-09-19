@@ -57,7 +57,7 @@ jobs:
             --title "${GITHUB_REF_NAME}"
 
   build:
-    name: Build linux-arm64 binary
+    name: Build & upload release binaries
     needs: release
     runs-on: ubuntu-latest
     steps:
@@ -72,27 +72,21 @@ jobs:
           # Newer "latest" regressed node_modules materialization on x64.
           bun-version: "1.4.0"
 
-      - name: Install system build deps (node-pty / native modules)
+      - name: Install system build deps (node-pty / native modules / zip)
         # The preinstalled Chrome apt repo often serves a stale index (Hash Sum
         # mismatch), which must not fail the whole job: our deps come from the
         # Ubuntu archives, so a partial update is fine.
-        run: sudo apt-get update || true && sudo apt-get install -y build-essential python3
+        run: sudo apt-get update || true && sudo apt-get install -y build-essential python3 zip
 
       # Hardlink backend fails to materialize node_modules on this bun/x64 combo.
       - name: Install dependencies
         run: bun install --backend copy
 
-      - name: Build linux-arm64 binary
+      - name: Build all targets & upload to release
         env:
           NEXUS_VERSION: ${{ github.ref_name }}
-        run: |
-          VERSION="${NEXUS_VERSION#v}"
-          NEXUS_VERSION="$VERSION" bun run --cwd packages/nexus script/build.ts --target=linux-arm64
-          tar -czf "nexus-linux-arm64-${VERSION}.tar.gz" -C packages/nexus/dist/nexus-linux-arm64/bin nexus
-
-      - name: Upload binary to release
-        env:
+          GH_REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          gh release upload "${GITHUB_REF_NAME}" "nexus-linux-arm64-${VERSION}.tar.gz" --clobber
+          VERSION="${NEXUS_VERSION#v}"
+          NEXUS_VERSION="$VERSION" bun run --cwd packages/nexus script/build.ts --release

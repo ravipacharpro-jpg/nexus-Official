@@ -43,7 +43,7 @@ export const dict = {
   "footer.youtube": "YouTube",
   "footer.homeAria": "Accueil NEXUS",
   "footer.status": "Tous les systèmes sont opérationnels",
-  "footer.copyright": "© 2026 Anomaly Innovations Inc.",
+  "footer.copyright": "© 2026 Nexus",
   "bridge.learnMore": "EN SAVOIR PLUS",
   "modal.closeNewsletter": "Fermer l'inscription à la newsletter",
   "modal.title": "Newsletter NEXUS",

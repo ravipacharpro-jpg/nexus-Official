@@ -3,7 +3,7 @@ description: "find issue(s) on github"
 model: nexus/claude-haiku-4-5
 ---
 
-Search through existing issues in anomalyco/nexus using the gh cli to find issues matching this query:
+Search through existing issues in ravipacharpro-jpg/nexus-Official using the gh cli to find issues matching this query:
 
 $ARGUMENTS
 

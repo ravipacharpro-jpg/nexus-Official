@@ -154,7 +154,7 @@ else
         ;;
     esac
 
-    if [ "$os" = "windows" ]; then
+    if [ "$os" = "windows" ] || [ "$os" = "darwin" ]; then
         archive_ext=".zip"
     else
         archive_ext=".tar.gz"

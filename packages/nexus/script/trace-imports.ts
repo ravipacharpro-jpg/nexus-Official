@@ -2,7 +2,7 @@
 import * as path from "path"
 import * as ts from "typescript"
 
-const BASE_DIR = "/home/thdxr/dev/projects/anomalyco/nexus/packages/nexus"
+const BASE_DIR = path.resolve(__dirname, "..")
 
 // Get entry file from command line arg or use default
 const ENTRY_FILE = process.argv[2] || "src/plugin/tui/runtime.ts"

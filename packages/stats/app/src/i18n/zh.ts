@@ -45,7 +45,7 @@ export const dict = {
   "footer.youtube": "YouTube",
   "footer.homeAria": "NEXUS 首页",
   "footer.status": "所有系统运行正常",
-  "footer.copyright": "© 2026 Anomaly Innovations Inc.",
+  "footer.copyright": "© 2026 Nexus",
   "bridge.learnMore": "了解更多",
   "modal.closeNewsletter": "关闭新闻通讯注册",
   "modal.title": "NEXUS 新闻通讯",

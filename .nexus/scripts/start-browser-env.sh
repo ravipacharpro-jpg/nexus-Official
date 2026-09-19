@@ -2,7 +2,7 @@
 # OPTIONAL: only for "watch the browser" mode (visible captcha inside the agent's
 # own Chromium). The DEFAULT browser mode is HEADLESS and needs NONE of this.
 #
-# To use visible mode: (1) edit .nexus/opencode.jsonc mcp.playwright command to drop
+# To use visible mode: (1) edit .nexus/nexus.jsonc mcp.playwright command to drop
 # `--headless` and use ["proot-distro","login","ubuntu","--","env","DISPLAY=:0",
 # "playwright-mcp","--browser","chromium","--no-sandbox"]; (2) run this script;
 # (3) connect a VNC viewer on your phone to 127.0.0.1:5900; (4) run `nexus`.

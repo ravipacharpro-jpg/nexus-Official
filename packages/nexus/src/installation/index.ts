@@ -45,6 +45,9 @@ export const Info = Schema.Struct({
 }).annotate({ identifier: "InstallationInfo" })
 export type Info = Schema.Schema.Type<typeof Info>
 
+export const GitHubRepo = "ravipacharpro-jpg/nexus-Official"
+export const UpgradeScriptURL = `https://raw.githubusercontent.com/${GitHubRepo}/main/install.sh`
+
 export function userAgent(client = "cli") {
   return `nexus/${InstallationChannel}/${InstallationVersion}/${client}`
 }
@@ -130,10 +133,6 @@ const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProcess.Serv
     )
 
     const getBrewFormula = Effect.fnUntraced(function* () {
-      const tapFormula = yield* text(["brew", "list", "--formula", "anomalyco/tap/nexus"])
-      if (tapFormula.includes("nexus")) return "anomalyco/tap/nexus"
-      const coreFormula = yield* text(["brew", "list", "--formula", "nexus"])
-      if (coreFormula.includes("nexus")) return "nexus"
       return "nexus"
     })
 
@@ -152,7 +151,9 @@ const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProcess.Serv
     const upgradeCurl = Effect.fnUntraced(
       function* (target: string) {
         const response = yield* httpOk.execute(
-          HttpClientRequest.get("https://raw.githubusercontent.com/agenthubnow/nexus/main/install.sh"),
+          HttpClientRequest.get(
+            UpgradeScriptURL,
+          )
         )
         const body = yield* response.text
         const bodyBytes = new TextEncoder().encode(body)
@@ -262,7 +263,7 @@ const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProcess.Serv
         }
 
         const response = yield* httpOk.execute(
-          HttpClientRequest.get("https://api.github.com/repos/agenthubnow/nexus/releases/latest").pipe(
+          HttpClientRequest.get(`https://api.github.com/repos/${GitHubRepo}/releases/latest`).pipe(
             HttpClientRequest.acceptJson,
           ),
         )
@@ -285,25 +286,9 @@ const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProcess.Serv
             upgradeResult = yield* run(["bun", "install", "-g", `nexus-ai@${target}`])
             break
           case "brew": {
-            const formula = yield* getBrewFormula()
-            const env = { HOMEBREW_NO_AUTO_UPDATE: "1" }
-            if (formula.includes("/")) {
-              const tap = yield* run(["brew", "tap", "anomalyco/tap"], { env })
-              if (tap.code !== 0) {
-                upgradeResult = tap
-                break
-              }
-              const repo = yield* text(["brew", "--repo", "anomalyco/tap"])
-              const dir = repo.trim()
-              if (dir) {
-                const pull = yield* run(["git", "pull", "--ff-only"], { cwd: dir, env })
-                if (pull.code !== 0) {
-                  upgradeResult = pull
-                  break
-                }
-              }
-            }
-            upgradeResult = yield* run(["brew", "upgrade", formula], { env })
+            upgradeResult = yield* run(["brew", "upgrade", "nexus"], {
+              env: { HOMEBREW_NO_AUTO_UPDATE: "1" },
+            })
             break
           }
           case "choco":

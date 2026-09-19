@@ -8,9 +8,10 @@ const lake = deployAws ? await import("./lake") : undefined
 // DATABASE
 ////////////////
 
+// Replace with your own PlanetScale organization when deploying.
 const cluster = planetscale.getDatabaseOutput({
   name: "nexus",
-  organization: "anomalyco",
+  organization: "<your-planetscale-org>",
 })
 
 const branch =

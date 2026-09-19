@@ -7,12 +7,12 @@ if [ -n "${TERMUX_VERSION-}" ] || case "${PREFIX-}" in *com.termux*) true ;; *) 
     if [ -n "$HERE" ] && [ -f "$HERE/install-termux.sh" ]; then
         exec bash "$HERE/install-termux.sh" "$@"
     fi
-    curl -fsSL "${NEXUS_TERMUX_INSTALL_URL:-https://raw.githubusercontent.com/itzgeniusboy/nexus/main/install-termux.sh}" | bash -s -- "$@"
+    curl -fsSL "${NEXUS_TERMUX_INSTALL_URL:-https://raw.githubusercontent.com/ravipacharpro-jpg/nexus-Official/main/install-termux.sh}" | bash -s -- "$@"
     exit $?
 fi
 
 APP=nexus
-REPO=itzgeniusboy/nexus
+REPO=ravipacharpro-jpg/nexus-Official
 INSTALL_DIR="${NEXUS_INSTALL_DIR:-$HOME/.nexus/bin}"
 
 MUTED='\033[0;2m'
@@ -33,8 +33,8 @@ Options:
         --no-modify-path    Don't modify shell config files (.zshrc, .bashrc, etc.)
 
 Examples:
-    curl -fsSL https://raw.githubusercontent.com/itzgeniusboy/nexus/main/install.sh | bash
-    curl -fsSL https://raw.githubusercontent.com/itzgeniusboy/nexus/main/install.sh | bash -s -- --version 0.1.5
+    curl -fsSL https://raw.githubusercontent.com/ravipacharpro-jpg/nexus-Official/main/install.sh | bash
+    curl -fsSL https://raw.githubusercontent.com/ravipacharpro-jpg/nexus-Official/main/install.sh | bash -s -- --version 0.1.5
     ./install.sh --binary /path/to/nexus
 EOF
 }
