@@ -35,3 +35,4 @@ tsconfig.tsbuildinfo
 **/__pycache__/
 *.pyc
 
+.nexus/
