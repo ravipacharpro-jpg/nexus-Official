@@ -110,6 +110,21 @@ if [ -f "$HOME/.nexus/bin/zen-bridge.ts" ] && ! curl -sf --max-time 2 "$BRIDGE_U
   done
 fi
 
+# Auto-start the nexus-router bridge (multi-key failover gateway) if it is
+# installed and not already running. It lazily spawns the router itself.
+ROUTER_URL="${NEXUS_ROUTER_URL:-http://127.0.0.1:4898}"
+if [ -f "$HOME/.nexus/bin/nexus-router-bridge.ts" ] && ! curl -sf --max-time 2 "$ROUTER_URL/v1/models" >/dev/null 2>&1; then
+  if command -v setsid >/dev/null 2>&1; then
+    setsid -f bun "$HOME/.nexus/bin/nexus-router-bridge.ts" >/dev/null 2>>"$TMPDIR/nexus-router-bridge.log" &
+  else
+    nohup bun "$HOME/.nexus/bin/nexus-router-bridge.ts" >/dev/null 2>>"$TMPDIR/nexus-router-bridge.log" &
+  fi
+  for i in 1 2 3 4 5 6 7 8 9 10; do
+    curl -sf --max-time 2 "$ROUTER_URL/v1/models" >/dev/null 2>&1 && break
+    sleep 1
+  done
+fi
+
 cd "$SOURCE_DIR"
 exec bun run --cwd packages/nexus --conditions=browser src/index.ts "$@"
 LAUNCHER
