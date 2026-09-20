@@ -151,8 +151,6 @@ export const ModelsTestCommand = effectCmd({
         "google",
         "ollama",
         "openai",
-        "opencode",
-        "nexus",
         ...configured,
         ...configuredTargets.map((item) => item.providerID),
       ]),
@@ -166,9 +164,8 @@ export const ModelsTestCommand = effectCmd({
       const provider = yield* s.getProvider(ProviderV2.ID.make(pid))
       if (!provider) continue
       // Do not issue requests for cloud providers that have no configured key.
-      // Keyless providers are the intentional exception: ollama (local) and the
-      // opencode/nexus gateway (public free tier).
-      if (pid !== "ollama" && pid !== "opencode" && pid !== "nexus" && (yield* s.rotationKeyCount(ProviderV2.ID.make(pid))) === 0 && !provider.key) continue
+      // Keyless providers are the intentional exception: ollama (local).
+      if (pid !== "ollama" && (yield* s.rotationKeyCount(ProviderV2.ID.make(pid))) === 0 && !provider.key) continue
 
       const configuredIDs = configuredModelIDs(cfg, pid)
       const targets =

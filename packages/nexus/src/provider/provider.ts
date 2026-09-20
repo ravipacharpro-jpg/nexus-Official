@@ -54,7 +54,7 @@ function hasUsableProviderCredential(
   provider: Pick<Info, "id" | "key" | "source">,
   apiKeys: Record<string, string[]>,
 ): boolean {
-  if (provider.id === "ollama" || provider.id === "opencode" || provider.id === "nexus") return true
+  if (provider.id === "ollama") return true
   if (provider.source === "env" || provider.source === "api") return true
   const keys = [...(provider.key ? [provider.key] : []), ...configuredProviderKeys(apiKeys, provider.id)]
   if (keys.length === 0) return false
@@ -95,13 +95,9 @@ async function checkProviderHealth(
   providerKey?: string,
 ): Promise<boolean> {
   // Keyless providers: probe reachability instead of requiring a credential so
-  // the free fallback path (opencode/nexus/ollama) can actually be selected.
+  // the free fallback path (ollama) can actually be selected.
   if (providerID === "ollama") {
     return isEndpointReachable(`${ollamaBaseURL()}/models`)
-  }
-  if (providerID === "opencode" || providerID === "nexus") {
-    const contract = contractFor(providerID)
-    return isEndpointReachable(contract?.modelsEndpoint ?? "https://opencode.ai/zen/v1/models")
   }
   const keys = [
     ...(providerKey?.trim() ? [providerKey.trim()] : []),
@@ -2337,7 +2333,7 @@ const layer = Layer.effect(
 
       const configured = Object.keys(cfg.provider ?? {})
       const candidates = Object.values(s.providers)
-        .filter((p) => configured.length === 0 || configured.includes(p.id) || p.id === "opencode" || p.id === "nexus")
+        .filter((p) => configured.length === 0 || configured.includes(p.id))
         .filter((p) => hasUsableProviderCredential(p, effectiveApiKeys))
         .sort((a, b) => providerPriority(a.id) - providerPriority(b.id) || a.id.localeCompare(b.id))
       
@@ -2389,7 +2385,7 @@ const layer = Layer.effect(
       const configured = Object.keys(cfg.provider ?? {})
       return Object.values(s.providers)
         .filter((p) => p.id !== excludeProviderID)
-        .filter((p) => configured.length === 0 || configured.includes(p.id) || p.id === "opencode" || p.id === "nexus")
+        .filter((p) => configured.length === 0 || configured.includes(p.id))
         .filter((p) => hasUsableProviderCredential(p, effectiveApiKeys))
         .sort((a, b) => providerPriority(a.id) - providerPriority(b.id) || a.id.localeCompare(b.id))
         .flatMap((p) => {

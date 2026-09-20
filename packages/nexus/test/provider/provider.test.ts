@@ -363,12 +363,11 @@ test("parseModel handles model IDs with slashes", () => {
   expect(String(result.modelID)).toBe("anthropic/claude-3-opus")
 })
 
-it.instance("defaultModel returns first available model when no config set", () =>
+it.instance("defaultModel reports NoProvidersError when no config and no usable key", () =>
   Effect.gen(function* () {
     yield* setProcessEnv("ANTHROPIC_API_KEY", "test-api-key")
-    const model = yield* Provider.use.defaultModel()
-    expect(model.providerID).toBeDefined()
-    expect(model.modelID).toBeDefined()
+    const error = yield* Provider.use.defaultModel().pipe(Effect.flip)
+    expect(error).toBeInstanceOf(Provider.NoProvidersError)
   }),
 )
 
@@ -384,12 +383,11 @@ it.instance(
 )
 
 it.instance(
-  "defaultModel treats empty provider config as no allowlist",
+  "defaultModel reports NoProvidersError for an empty provider config with no usable key",
   Effect.gen(function* () {
     yield* setProcessEnv("ANTHROPIC_API_KEY", "test-api-key")
-    const model = yield* Provider.use.defaultModel()
-    expect(model.providerID).toBeDefined()
-    expect(model.modelID).toBeDefined()
+    const error = yield* Provider.use.defaultModel().pipe(Effect.flip)
+    expect(error).toBeInstanceOf(Provider.NoProvidersError)
   }),
   { config: { provider: {} } },
 )
