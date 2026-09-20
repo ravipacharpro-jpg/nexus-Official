@@ -39,41 +39,48 @@ function stripFences(text: string): string {
 }
 
 async function askModel(prompt: string, timeoutMs: number): Promise<string> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    const response = await fetch(`${BASE}/v1/chat/completions`, {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: "Bearer zen-bridge-token" },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          {
-            role: "system",
-            content:
-              "You fix code precisely. The user gives you a file and one reported issue. " +
-              'Respond with ONLY a JSON object: {"match":"exact substring from the file to replace","replacement":"corrected code"}. ' +
-              "match must be copied verbatim from the file. Do not explain, do not wrap in fences.",
-          },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.1,
-        max_tokens: 2000,
-      }),
-    })
-    if (!response.ok) {
-      const body = await response.text()
-      throw new Error(`zen-bridge ${response.status}: ${body.slice(0, 200)}`)
+  let lastError = "empty completion from zen-bridge"
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
+    try {
+      const response = await fetch(`${BASE}/v1/chat/completions`, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: "Bearer zen-bridge-token" },
+        body: JSON.stringify({
+          model: MODEL,
+          messages: [
+            {
+              role: "system",
+              content:
+                "You fix code precisely. The user gives you a file and one reported issue. " +
+                'Respond with ONLY a JSON object: {"match":"exact substring from the file to replace","replacement":"corrected code"}. ' +
+                "match must be copied verbatim from the file. Do not explain, do not wrap in fences.",
+            },
+            { role: "user", content: prompt },
+          ],
+          temperature: 0.1,
+          max_tokens: 2000,
+        }),
+      })
+      if (!response.ok) {
+        const body = await response.text()
+        lastError = `zen-bridge ${response.status}: ${body.slice(0, 200)}`
+        continue
+      }
+      const data = (await response.json()) as {
+        choices?: Array<{ message?: { content?: string } }>
+      }
+      const content = data.choices?.[0]?.message?.content
+      if (content) return content
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError" && attempt === 0) continue
+      throw error
+    } finally {
+      clearTimeout(timer)
     }
-    const data = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>
-    }
-    const content = data.choices?.[0]?.message?.content
-    if (!content) throw new Error("empty completion from zen-bridge")
-    return content
-  } finally {
-    clearTimeout(timer)
   }
+  throw new Error(lastError)
 }
 
 export class ZenFixer {
