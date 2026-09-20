@@ -131,7 +131,7 @@ if [ -f "$BRIDGE_SRC" ]; then
   "model": "zen-free/big-pickle",
   "provider": {
     "zen-free": {
-      "name": "Zen Free (local bridge)",
+      "name": "OpenCode Zen Free",
       "api": "http://127.0.0.1:4897/v1",
       "models": {
         "big-pickle": {},

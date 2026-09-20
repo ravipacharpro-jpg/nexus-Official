@@ -233,7 +233,7 @@ export const PROVIDER_CONTRACTS: Record<string, ProviderContract> = {
   },
   "zen-free": {
     id: "zen-free",
-    label: "Zen Free (local bridge)",
+    label: "OpenCode Zen Free",
     aliases: ["zenb", "bridge"],
     // Routes requests through the on-device `zen-bridge` (terminals/zen-bridge),
     // which proxies to a local `opencode serve` so the OpenCode Zen FREE tier
