@@ -1,0 +1,13 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# zen-bridge termux-services service — keeps the free-zen bridge up across
+# Termux restarts. Install with: install-termux.sh --services (or sv-enable).
+if [ ! -f "$HOME/.nexus/bin/zen-bridge.ts" ]; then
+  echo "zen-bridge.ts not installed at $HOME/.nexus/bin — run install-termux.sh first" >&2
+  exit 1
+fi
+export HOME=/data/data/com.termux/files/home
+export PATH=/data/data/com.termux/files/usr/bin:$PATH
+export ZEN_BRIDGE_PORT=4897
+export ZEN_SERVE_PORT=0
+export ZEN_BRIDGE_URL=http://127.0.0.1:4897
+exec bun "$HOME/.nexus/bin/zen-bridge.ts"
