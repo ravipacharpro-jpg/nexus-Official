@@ -16,10 +16,12 @@
  *   baseURL http://127.0.0.1:<port>/v1   model big-pickle   no auth
  */
 import { spawn } from "node:child_process"
+import { appendFileSync } from "node:fs"
 
 const BRIDGE_PORT = Number(process.env.ZEN_BRIDGE_PORT ?? 4897)
 const OPCODE_PORT_HINT = Number(process.env.ZEN_SERVE_PORT ?? 0)
-const REQUEST_TIMEOUT_MS = 90_000
+const REQUEST_TIMEOUT_MS = Number(process.env.ZEN_TIMEOUT_MS ?? 300_000)
+const SERVE_LOG = `${process.env.TMPDIR ?? "/data/data/com.termux/files/usr/tmp"}/opencode-serve.log`
 
 const MODELS = [
   "big-pickle",
@@ -65,13 +67,14 @@ async function spawnServe(): Promise<void> {
     const timer = setTimeout(() => reject(new Error("timed out waiting for opencode serve to start")), 20_000)
 const cb = (chunk: Uint8Array) => {
         const text = new TextDecoder().decode(chunk)
-      const m = text.match(/listening on (http:\/\/127\.0\.0\.1:\d+)/)
-      if (m) {
-        clearTimeout(timer)
-        serve!.base = m[1]
-        resolve()
+        try { appendFileSync(SERVE_LOG, text) } catch {}
+        const m = text.match(/listening on (http:\/\/127\.0\.0\.1:\d+)/)
+        if (m) {
+          clearTimeout(timer)
+          serve!.base = m[1]
+          resolve()
+        }
       }
-    }
     out.stdout.pipeTo(new WritableStream({ write: cb })).catch(() => {})
     out.stderr.pipeTo(new WritableStream({ write: cb })).catch(() => {})
   })
@@ -246,7 +249,18 @@ const server = Bun.serve({
             const push = (s: string) => controller.enqueue(enc.encode(s))
             push(openaiChunk(id, "", null))
             let total = 0
-            const ev = await events
+            let ev = await events
+            let resp = await messageResp
+            if (!ev?.ok || !resp?.ok) {
+              await Bun.sleep(500)
+              ev = await fetch(`${base}/session/${sid}/event?cursor=batch`, { signal: abort.signal }).catch(() => null)
+              resp = await fetch(`${base}/session/${sid}/message`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ parts, model: { providerID: "opencode", modelID } }),
+                signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+              }).catch(() => null)
+            }
             if (ev?.ok) {
               try {
                 for await (const delta of serveStream(ev)) {
@@ -257,7 +271,6 @@ const server = Bun.serve({
                 }
               } catch {}
             }
-            const resp = await messageResp
             if (resp?.ok) {
               const full = asAssistantParts(await resp.json())
               const remaining = full.slice(total)
